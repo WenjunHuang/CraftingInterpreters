@@ -1,0 +1,53 @@
+{
+tokens=[
+SEMI=';'
+EQ='='
+LP='('
+RP=')'
+
+SPACE='regexp:\s+'
+COMMENT='regexp://.*'
+NUMBER='regexp:\d+(\.\d*)?'
+ID='regexp:\p{Alpha}\w*'
+STRING="regexp:('([^'\\]\\.)*'|\"([^\"\\]|\\.)*\")"
+OP_1 = '+'
+OP_2 = '-'
+OP_3 = '*'
+OP_4 = '/'
+OP_5 = '!'
+]
+
+name(".*expr") = 'expression'
+extends(".*expr") = expr
+}
+
+
+//root ::= root_item *
+//private root_item ::= !<<eof>> expression ';' {pin=1}
+//expression ::= equality;
+//equality ::= comparison (('!=' | '==') comparison)* ;
+//comparison ::= term (('>'|'>='|'<'|'<=') term)* ;
+//term ::= factor (( '-'|'+') factor)* ;
+//factor ::= unary (('/'|'*') unary)* ;
+//unary ::= ('!'|'-') unary | primary;
+//primary ::= NUMBER | STRING | 'true' | 'false' |'nil'|'(' expression ')';
+
+
+root ::= root_item *
+private root_item ::= !<<eof>> property ';' {pin=1}
+
+property ::= id '=' expr {pin=2 recoverWhile=property_recover}
+private property_recover ::= !(';' | id '=')
+
+expr ::= factor plus_expr *
+left plus_expr ::= plus_op factor
+private plus_op ::= '+'|'-'
+private factor ::= primary mul_expr *
+left mul_expr  ::= mul_op primary
+private mul_op ::= '*'|'/'
+private primary ::= primary_inner factorial_expr ?
+left factorial_expr ::= '!'
+private primary_inner ::= literal_expr | ref_expr | paren_expr
+paren_expr ::= '(' expr ')' {pin=1}
+ref_expr ::= id
+literal_expr ::= number | string | float
