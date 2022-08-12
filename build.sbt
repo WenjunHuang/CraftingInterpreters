@@ -24,6 +24,7 @@ lazy val root =
         ),
       Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
       Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "java",
+      Compile / unmanagedSourceDirectories += baseDirectory.value / "gen" ,
       Test / unmanagedResourceDirectories += baseDirectory.value / "testResources"
       //      packageLibraryMappings += "org.typelevel" %% "cats*" % ".*" -> Some("lib/cats.jar"),
     )
