@@ -1,5 +1,6 @@
 package com.github.wenjunhuang.lox
 import scala.collection.mutable
+import scala.util.control.Breaks.*
 
 class Scanner(val source: String):
   import TokenType.*
@@ -44,10 +45,11 @@ class Scanner(val source: String):
       case '/' =>
         if matchChar('/') then while peek() != '\n' && !isAtEnd do advance()
         else if matchChar('*') then
-          var break = false
-          while !isAtEnd && !break do
-            if matchChar('*') then if matchChar('/') then break = true
-            if !break then advance()
+          breakable {
+            while !isAtEnd do
+              if matchChar('*') then if matchChar('/') then break
+              advance()
+          }
         else addToken(SLASH)
       case ' ' | '\r' | '\t' =>
       case '\n' =>
