@@ -4,29 +4,52 @@ import java.nio.file.{Files, Paths}
 import scala.io.StdIn
 import scala.util.Using
 
-@main
-def lox() =
-  runPrompt()
+object Lox:
+  var hasRuntimeError = false
+  var hadError = false
+  def main(args: Array[String]) =
+    runPrompt()
+//    run("""
+//          |print "one"
+//          |print true;
+//          |print 2 + 1;
+//          |""".stripMargin)
 
-private def runFile(path: String) =
-  val bytes = Files.readAllBytes(Paths.get(path))
+  private def runFile(path: String) =
+    val bytes = Files.readAllBytes(Paths.get(path))
+  end runFile
 
-private def runPrompt() =
-  LazyList
-    .continually(StdIn.readLine("> "))
-    .takeWhile(_ != null)
-    .foreach(run)
+  def runPrompt() =
+    val interpreter = new Interpreter()
+    LazyList
+      .continually(StdIn.readLine("> "))
+      .takeWhile(_ != null)
+      .foreach(run(interpreter))
 
-private def run(source: String) =
-  val scanner = new Scanner(source)
-  val tokens = scanner.scanTokens()
-  tokens.foreach(println)
+  private def run(interpreter: Interpreter)(source: String) =
+    val scanner = new Scanner(source)
+    val tokens = scanner.scanTokens()
+    val parser = new Parser(tokens)
+    val expression = parser.parse()
+    expression match
+      case Right(expr) => interpreter.interpret(expr)
+      case Left(error) => error.printStackTrace()
+    end match
+  end run
 
-private var hadError = false
+  def error(token: Token, message: String): Unit =
+    if token.tt == TokenType.EOF then report(token.line, "", message)
+    else report(token.line, s" at '${token.lexeme}'", message)
 
-private[lox] def error(line: Int, message: String) =
-  report(line, "", message)
+  def error(line: Int, message: String): Unit =
+    report(line, "", message)
 
-private def report(line: Int, where: String, message: String) =
-  println(s"[line $line] Error $where: $message")
-  hadError = true
+  def runtimeError(error: RuntimeError) =
+    println(s"${error.getMessage}\n[line ${error.token.line}]")
+    hasRuntimeError = true
+  end runtimeError
+  private def report(line: Int, where: String, message: String) =
+    println(s"[line $line] Error $where: $message")
+    hadError = true
+  end report
+end Lox

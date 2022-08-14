@@ -4,8 +4,8 @@ import com.fasterxml.jackson.module.kotlin.ReflectionCache.BooleanTriState.False
 
 enum TokenType:
   // Single-character tokens.
-  case LEFT_PARAN
-  case RIGHT_PARAN
+  case LEFT_PAREN
+  case RIGHT_PAREN
   case LEFT_BRACE
   case RIGHT_BRACE
   case COMMA
@@ -49,3 +49,4 @@ enum TokenType:
   case VAR
   case WHILE
   case EOF
+end TokenType

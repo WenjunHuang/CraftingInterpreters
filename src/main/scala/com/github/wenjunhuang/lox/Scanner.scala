@@ -12,18 +12,19 @@ class Scanner(val source: String):
   // The line field tracks what source line current is on so we can produce tokens that know their location.
   var line = 1
 
-  def scanTokens(): List[Token] =
-    while (!isAtEnd) {
+  def scanTokens(): Vector[Token] =
+    while !isAtEnd do {
       start = current
       scanToken()
     }
-    tokens.toList
+    addToken(EOF)
+    tokens.toVector
 
   private def scanToken() =
     val c = advance()
     c match
-      case '(' => addToken(LEFT_PARAN)
-      case ')' => addToken(RIGHT_PARAN)
+      case '(' => addToken(LEFT_PAREN)
+      case ')' => addToken(RIGHT_PAREN)
       case '{' => addToken(LEFT_BRACE)
       case '}' => addToken(RIGHT_BRACE)
       case ',' => addToken(COMMA)
@@ -41,10 +42,10 @@ class Scanner(val source: String):
       case '>' =>
         addToken(if matchChar('=') then GREATER_EQUAL else GREATER)
       case '/' =>
-        if matchChar('/') then while (peek() != '\n' && !isAtEnd) advance()
+        if matchChar('/') then while peek() != '\n' && !isAtEnd do advance()
         else if matchChar('*') then
           var break = false
-          while (!isAtEnd && !break)
+          while !isAtEnd && !break do
             if matchChar('*') then if matchChar('/') then break = true
             if !break then advance()
         else addToken(SLASH)
@@ -54,7 +55,7 @@ class Scanner(val source: String):
       case '"'             => string()
       case c if isDigit(c) => number()
       case c if isAlpha(c) => identifier()
-      case _               => error(line, "Unexpected character.")
+      case _               => Lox.error(line, "Unexpected character.")
 
   private def isAlphaNumeric(c: Char): Boolean =
     isAlpha(c) || isDigit(c)
@@ -64,7 +65,7 @@ class Scanner(val source: String):
   private def isDigit(c: Char): Boolean = c >= '0' && c <= '9'
 
   private def identifier(): Unit =
-    while (isAlphaNumeric(peek())) advance()
+    while isAlphaNumeric(peek()) do advance()
 
     val text = source.substring(start, current)
     Scanner.keywords.get(text) match
@@ -72,13 +73,13 @@ class Scanner(val source: String):
       case None            => addToken(IDENTIFIER)
 
   private def number() =
-    while (isDigit(peek())) advance()
+    while isDigit(peek()) do advance()
 
     // Look for a fractional part.
     if peek() == '.' && isDigit(peekNext()) then
       // Consume the '.'
       advance()
-      while (isDigit(peek())) advance()
+      while isDigit(peek()) do advance()
 
     addToken(NUMBER, source.substring(start, current).toDoubleOption)
 
@@ -87,11 +88,11 @@ class Scanner(val source: String):
     else source.charAt(current + 1)
 
   private def string(): Unit =
-    while (peek() != '"' && !isAtEnd)
+    while peek() != '"' && !isAtEnd do
       if peek() == '\n' then line += 1
       advance()
 
-    if isAtEnd then error(line, "Unterminated string.")
+    if isAtEnd then Lox.error(line, "Unterminated string.")
     else
       advance() // The closing "
       // Trim the surrounding quotes
@@ -108,7 +109,7 @@ class Scanner(val source: String):
 
   private def matchChar(expected: Char): Boolean =
     if isAtEnd then false
-    else if (source.charAt(current) != expected) false
+    else if source.charAt(current) != expected then false
     else
       current += 1; true
 
