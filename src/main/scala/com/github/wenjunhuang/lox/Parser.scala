@@ -2,7 +2,7 @@ package com.github.wenjunhuang.lox
 import scala.collection.mutable
 import scala.util.control.Breaks.*
 
-class Parser(val tokens: Vector[Token]):
+class Parser(private val tokens: Vector[Token]):
   import TokenType.*
   var current = 0
 
@@ -164,3 +164,6 @@ class Parser(val tokens: Vector[Token]):
   private def previous: Token = tokens(current - 1)
 
 end Parser
+
+object Parser:
+  def apply(tokens: Vector[Token]) = new Parser(tokens)

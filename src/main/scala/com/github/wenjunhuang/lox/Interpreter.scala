@@ -105,7 +105,10 @@ class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
 
     environment.define(statement.name.lexeme, value)
 
-  override def visitAssignment(expr: Expression.Assign): Option[Any] = ???
+  override def visitAssignment(expr: Expression.Assign): Option[Any] =
+    val value = evaluate(expr.value)
+    environment.assign(expr.name, value)
+    value
 
   override def visitBlockStatement(statement: Statement.Block): Unit =
     executeBlock(statement.statements, Environment(environment))

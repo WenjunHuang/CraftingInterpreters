@@ -2,7 +2,7 @@ package com.github.wenjunhuang.lox
 import scala.collection.mutable
 import scala.util.control.Breaks.*
 
-class Scanner(val source: String):
+class Scanner(private val source: String):
   import TokenType.*
 
   val tokens: mutable.Buffer[Token] = mutable.Buffer[Token]()
@@ -124,6 +124,8 @@ class Scanner(val source: String):
 
 object Scanner:
   import TokenType.*
+
+  def apply(source:String):Scanner = new Scanner(source)
 
   val keywords: Map[String, TokenType] = Map(
     "and" -> AND,

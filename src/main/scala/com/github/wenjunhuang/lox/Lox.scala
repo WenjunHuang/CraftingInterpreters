@@ -1,6 +1,7 @@
 package com.github.wenjunhuang.lox
 import java.io.{BufferedReader, InputStreamReader}
 import java.nio.file.{Files, Paths}
+import scala.collection.mutable
 import scala.io.StdIn
 import scala.util.Using
 
@@ -21,20 +22,35 @@ object Lox:
 
   def runPrompt() =
     val interpreter = new Interpreter()
+    val buffer = mutable.Buffer[String]()
     LazyList
       .continually(StdIn.readLine("> "))
       .takeWhile(_ != null)
-      .foreach(run(interpreter))
+      .foreach(run(interpreter, buffer))
 
-  private def run(interpreter: Interpreter)(source: String) =
-    val scanner = new Scanner(source)
-    val tokens = scanner.scanTokens()
-    val parser = new Parser(tokens)
-    val expression = parser.parse()
-    expression match
-      case Right(expr) => interpreter.interpret(expr)
-      case Left(error) => error.printStackTrace()
-    end match
+  private def run(interpreter: Interpreter, buffer: mutable.Buffer[String])(source: String): Unit =
+    val realSource = if source == "{" then
+      buffer.append(source)
+      None
+    else if source == "}" then
+      buffer.append(source)
+      val result = buffer.mkString("\n")
+      buffer.clear()
+      Some(result)
+    else if buffer.nonEmpty then
+      buffer.append(source)
+      None
+    else Some(source)
+
+    realSource match
+      case Some(source) =>
+        val tokens = Scanner(source).scanTokens()
+        val expression = Parser(tokens).parse()
+        expression match
+          case Right(expr) => interpreter.interpret(expr)
+          case Left(error) => error.printStackTrace()
+        end match
+      case None =>
   end run
 
   def error(token: Token, message: String): Unit =
