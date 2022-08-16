@@ -1,4 +1,4 @@
-import org.jetbrains.sbtidea.Keys._
+import org.jetbrains.sbtidea.Keys.*
 lazy val root =
   project
     .in(file("."))
@@ -20,11 +20,12 @@ lazy val root =
           ("com.eclipsesource.minimal-json" % "minimal-json" % "0.9.5").withSources(),
           "org.scala-lang.modules" % "scala-swing_3" % "3.0.0", // "2.1.1" ,
           "org.scala-lang" % "scala3-library_3" % "3.1.3",
-          "org.typelevel" % "cats-effect_3" % "3.3.12"
+          "org.typelevel" % "cats-effect_3" % "3.3.14",
+          "org.scalatest" %% "scalatest" % "3.2.13" % Test
         ),
       Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
       Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "java",
-      Compile / unmanagedSourceDirectories += baseDirectory.value / "gen" ,
+      Compile / unmanagedSourceDirectories += baseDirectory.value / "gen",
       Test / unmanagedResourceDirectories += baseDirectory.value / "testResources"
       //      packageLibraryMappings += "org.typelevel" %% "cats*" % ".*" -> Some("lib/cats.jar"),
     )
