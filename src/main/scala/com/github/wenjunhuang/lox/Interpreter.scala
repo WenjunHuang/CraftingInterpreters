@@ -4,7 +4,7 @@ import com.github.wenjunhuang.lox.Expression.{Binary, Grouping, Literal, Unary}
 import com.github.wenjunhuang.lox.TokenType.*
 
 class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
-  private val environment = new Environment()
+  private var environment = Environment.Global
 
   def interpret(statements: Seq[Statement]): Unit =
     try for stm <- statements do execute(stm)
@@ -105,7 +105,16 @@ class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
 
     environment.define(statement.name.lexeme, value)
 
-  override def visitAssignment(expr: Expression.Assign): Option[Any] =
-    val value = evaluate(expr.value)
-    environment.assign(expr.name, value)
+  override def visitAssignment(expr: Expression.Assign): Option[Any] = ???
+
+  override def visitBlockStatement(statement: Statement.Block): Unit =
+    executeBlock(statement.statements, Environment(environment))
+
+  def executeBlock(statements: Vector[Statement], environment: Environment): Unit =
+    val previous = this.environment
+    try
+      this.environment = environment
+      for statement <- statements do execute(statement)
+    finally this.environment = previous
+
 end Interpreter

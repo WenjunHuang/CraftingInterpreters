@@ -37,8 +37,17 @@ class Parser(val tokens: Vector[Token]):
 
   private def statement(): Statement =
     if matching(TokenType.PRINT) then printStatement()
+    else if matching(TokenType.LEFT_BRACE) then Statement.Block(block())
     else expressionStatement()
 
+  private def block():Vector[Statement] =
+    val statements = mutable.Buffer[Statement]()
+    while !check(TokenType.RIGHT_BRACE) && !isAtEnd do
+      declaration() match
+        case Some(statement) => statements += statement
+        case None            =>
+    consume(TokenType.RIGHT_BRACE, "Expect '}' after block.")
+    statements.toVector
   private def expressionStatement(): Statement =
     val expr = expression()
     consume(TokenType.SEMICOLON, "Expect ';' after expression.")
