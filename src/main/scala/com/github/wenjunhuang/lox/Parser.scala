@@ -54,20 +54,19 @@ class Parser(val tokens: Vector[Token]):
   private def assignment(): Expression =
     val expr = equality()
     if matching(TokenType.EQUAL) then
-      val equals = previous()
       expr match
         case Expression.Variable(name) =>
           val value = assignment()
           Expression.Assign(name, value)
         case _ =>
-          error(equals, "Invalid assignment target.")
+          error(previous, "Invalid assignment target.")
           expr
     else expr
 
   private def equality(): Expression =
     var expr = comparison()
     while matching(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL) do
-      val operator = previous()
+      val operator = previous
       val right = comparison()
       expr = Expression.Binary(expr, operator, right)
     expr
@@ -75,7 +74,7 @@ class Parser(val tokens: Vector[Token]):
   private def comparison(): Expression =
     var expr = term()
     while matching(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) do
-      val operator = previous()
+      val operator = previous
       val right = term()
       expr = Expression.Binary(expr, operator, right)
     expr
@@ -83,7 +82,7 @@ class Parser(val tokens: Vector[Token]):
   private def term(): Expression =
     var expr = factor()
     while matching(PLUS, MINUS) do
-      val operator = previous()
+      val operator = previous
       val right = factor()
       expr = Expression.Binary(expr, operator, right)
     expr
@@ -91,14 +90,14 @@ class Parser(val tokens: Vector[Token]):
   private def factor(): Expression =
     var expr = unary()
     while matching(SLASH, STAR) do
-      val operator = previous()
+      val operator = previous
       val right = unary()
       expr = Expression.Binary(expr, operator, right)
     expr
 
   private def unary(): Expression =
     if matching(BANG, MINUS) then
-      val operator = previous()
+      val operator = previous
       val right = unary()
       Expression.Unary(operator, right)
     else primary()
@@ -107,16 +106,16 @@ class Parser(val tokens: Vector[Token]):
     if matching(FALSE) then Expression.Literal(Some(false))
     else if matching(TRUE) then Expression.Literal(Some(true))
     else if matching(NIL) then Expression.Literal(None)
-    else if matching(IDENTIFIER) then Expression.Variable(previous())
-    else if matching(NUMBER, STRING) then Expression.Literal(previous().literal)
+    else if matching(IDENTIFIER) then Expression.Variable(previous)
+    else if matching(NUMBER, STRING) then Expression.Literal(previous.literal)
     else if matching(LEFT_PAREN) then
       val expr = expression()
       consume(RIGHT_PAREN, "Expect ')' after expression.")
       Expression.Grouping(expr)
-    else throw error(peek(), "Expect expression.")
+    else throw error(peek, "Expect expression.")
 
   private def consume(tokenType: TokenType, message: String): Token =
-    if !check(tokenType) then throw error(peek(), message)
+    if !check(tokenType) then throw error(peek, message)
     else advance()
 
   private def error(token: Token, message: String): ParseError =
@@ -127,8 +126,8 @@ class Parser(val tokens: Vector[Token]):
     advance()
     breakable {
       while !isAtEnd do
-        if previous().tt == SEMICOLON then break
-        peek().tt match
+        if previous.tt == SEMICOLON then break
+        peek.tt match
           case CLASS | FOR | FUN | IF | PRINT | RETURN | VAR | WHILE => break
           case _                                                     =>
         advance()
@@ -142,17 +141,17 @@ class Parser(val tokens: Vector[Token]):
 
   private def check(tokenType: TokenType): Boolean =
     if isAtEnd then false
-    else peek().tt == tokenType
+    else peek.tt == tokenType
 
   private def advance(): Token =
     if !isAtEnd then current += 1
-    previous()
+    previous
 
   private def isAtEnd: Boolean =
-    peek().tt == TokenType.EOF
+    peek.tt == TokenType.EOF
 
-  private def peek(): Token = tokens(current)
+  private def peek: Token = tokens(current)
 
-  private def previous(): Token = tokens(current - 1)
+  private def previous: Token = tokens(current - 1)
 
 end Parser

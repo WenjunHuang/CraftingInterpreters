@@ -8,4 +8,12 @@ class Environment:
   def get(name: Token): Option[Any] = values.get(name.lexeme) match
     case Some(value) => value
     case None        => throw new RuntimeError(name, s"Undefined variable '${name.lexeme}'.'")
+
+  def assign(name:Token,value: Option[Any]): Option[Any] =
+    values.updateWith(name.lexeme){
+      case Some(_) => Some(value)
+      case None => throw new RuntimeError(name, s"Undefined variable '${name.lexeme}'.'")
+    }
+
+
 end Environment

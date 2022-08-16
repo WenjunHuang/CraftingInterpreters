@@ -9,3 +9,5 @@ trait ExprVisitor[+A]:
   def visitBinaryExpr(expr: Binary): A
   def visitGroupExpr(expr: Grouping): A
   def visitVariable(expr: Variable): A
+end ExprVisitor
+
