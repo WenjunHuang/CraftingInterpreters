@@ -14,7 +14,8 @@ extends(".*Stmt") = statement
 program ::= declaration * <<eof>>
 declaration ::= varDecl | statement
 varDecl ::= "var" IDENTIFIER ("=" expression )? ";"
-statement ::= printStmt | blockStmt | ifStmt | exprStmt
+statement ::= printStmt | blockStmt | ifStmt | whileStmt |exprStmt
+whileStmt ::= "while" "(" expression ")" statement
 printStmt ::= "print" expression ";"
 blockStmt ::= "{" declaration * "}"
 ifStmt ::= "if" "(" expression ")" statement ("else" statement)?

@@ -5,6 +5,7 @@ enum Statement:
   case Print(expression: Expression)
   case If(condition: Expression, thenBranch: Statement, elseBranch: Option[Statement])
   case Var(name: Token, initializer: Option[Expression])
+  case While(condition: Expression, body: Statement)
   case Block(statements: Vector[Statement])
 
   def accept[T](visitor: StatementVisitor[T]): T = this match
