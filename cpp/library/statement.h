@@ -16,20 +16,20 @@ class If;
 class Var;
 class While;
 class Block;
-using Statement = std::variant<Expr, Print, If, Var, While, Block>;
+using Statement = std::variant<std::nullopt_t,Expr, Print, If, Var, While, Block>;
 
 using StatementPtr = std::unique_ptr<Statement>;
 
 struct Expr {
-  ExpressionPtr expr;
+  Expression expr;
 };
 
 struct Print {
-  ExpressionPtr expr;
+  Expression expr;
 };
 
 struct If {
-  ExpressionPtr condition;
+  Expression condition;
   StatementPtr thenBranch;
   std::optional<StatementPtr> elseBranch;
 };
@@ -40,12 +40,12 @@ struct Var {
 };
 
 struct While {
-  ExpressionPtr condition;
+  Expression condition;
   StatementPtr body;
 };
 
 struct Block {
-  std::vector<StatementPtr> statements;
+  std::vector<Statement> statements;
 };
 
 }  // namespace lox

@@ -14,7 +14,7 @@ class ParserInner;
 class Parser {
  public:
   explicit Parser(std::vector<Token> tokens);
-  std::vector<StatementPtr> parse();
+  std::vector<Statement> parse();
 
  private:
   std::unique_ptr<ParserInner> inner;
