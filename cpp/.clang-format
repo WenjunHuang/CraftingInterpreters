@@ -1,0 +1,3 @@
+BasedOnStyle: Chromium
+Standard: c++20
+SortIncludes: CaseSensitive
