@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <AssemblyName>com.github.wenjunhuang.lox</AssemblyName>
+        <RootNamespace>com.github.wenjunhuang.lox</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Value.fs" />
+        <Compile Include="ParseError.fs" />
+        <Compile Include="TokenType.fs" />
+        <Compile Include="Token.fs" />
+        <Compile Include="RuntimeError.fs" />
+        <Compile Include="VarEnvironment.fs" />
+        <Compile Include="Expresson.fs" />
+        <Compile Include="Statement.fs" />
+        <Compile Include="Lox.fs" />
+        <Compile Include="Scanner.fs" />
+        <Compile Include="IStmtVisitor.fs" />
+        <Compile Include="IExprVisitor.fs" />
+        <Compile Include="Parser.fs" />
+    </ItemGroup>
+
+</Project>
