@@ -103,7 +103,7 @@ type Parser(tokens: Token array) =
 
         let condition = expression ()
 
-        consume TokenType.RIGHT_BRACE "Expect ')' after if condition"
+        consume TokenType.RIGHT_PAREN "Expect ')' after if condition"
         |> ignore
 
         let thenBranch = statement ()

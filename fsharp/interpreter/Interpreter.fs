@@ -4,8 +4,7 @@ open Microsoft.FSharp.Core
 open com.github.wenjunhuang.lox
 
 type Interpreter() =
-    let mutable environment =
-        VarEnvironment.Global
+    let mutable environment = VarEnvironment.Global
 
     let checkNumberOperand operator operand func =
         // let ok = operand :? double
@@ -71,6 +70,15 @@ type Interpreter() =
         | Statement.Print expr ->
             let value = evaluate expr
             printfn $"{value}"
+        | Statement.If (expression, thenBranch, statementOption) ->
+            let condition = evaluate expression
+
+            if isTruthy condition then
+                visitStatement thenBranch
+            else
+                match statementOption with
+                | Some elseBranch -> visitStatement elseBranch
+                | None -> ()
         | Statement.Var (token, expressionOption) ->
             let value =
                 match expressionOption with
@@ -84,8 +92,7 @@ type Interpreter() =
         let oldEnvironment = environment
 
         try
-            let newEnvironment =
-                VarEnvironment.Enclosing oldEnvironment
+            let newEnvironment = VarEnvironment.Enclosing oldEnvironment
 
             environment <- newEnvironment
 
@@ -94,7 +101,7 @@ type Interpreter() =
         finally
             environment <- oldEnvironment
 
-    member this.Interpret(statements: seq<Statement>) =
+    member this.Interpret (statements: seq<Statement>) =
         try
             for stmt in statements do
                 (this :> IStmtVisitor<obj>).Visit(stmt) |> ignore
@@ -102,7 +109,7 @@ type Interpreter() =
         | :? RuntimeError as re -> Lox.runtimeError re
 
     interface IExprVisitor<Value> with
-        member this.Visit(expr) = visit expr
+        member this.Visit (expr) = visit expr
 
     interface IStmtVisitor<obj> with
-        member this.Visit(stmt) = visitStatement stmt
+        member this.Visit (stmt) = visitStatement stmt
