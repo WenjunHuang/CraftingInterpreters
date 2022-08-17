@@ -116,7 +116,7 @@ type Parser(tokens: Token array) =
 
         Statement.If(condition = condition, thenBranch = thenBranch, elseBranch = elseBranch)
 
-    
+
     and blockStatement () =
         let statements = List<Statement>()
 
@@ -150,7 +150,7 @@ type Parser(tokens: Token array) =
     and expression () = assignment ()
 
     and assignment () =
-        let expr = equality ()
+        let expr = logicOr ()
 
         if matching [ TokenType.EQUAL ] then
             let equals = previous ()
@@ -166,6 +166,26 @@ type Parser(tokens: Token array) =
                 c
         else
             expr
+
+    and logicOr () =
+        let mutable expr = logicAnd ()
+
+        while matching [ TokenType.OR ] do
+            let op = previous ()
+            let right = logicAnd ()
+            expr <- Expression.Logical(expr, op, right)
+
+        expr
+
+    and logicAnd () =
+        let mutable expr = equality ()
+
+        while matching [ TokenType.AND ] do
+            let op = previous ()
+            let right = equality ()
+            expr <- Expression.Logical(expr, op, right)
+
+        expr
 
     and equality () =
         let mutable expr = comparison ()

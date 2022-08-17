@@ -14,7 +14,7 @@ type Interpreter() =
 
     let checkNumberOperands operator left right func =
         match (left, right) with
-        | (DoubleValue lv, DoubleValue rv) -> func lv rv
+        | DoubleValue lv, DoubleValue rv -> func lv rv
         | _ -> raise (RuntimeError(operator, "Operands must be number."))
 
     let isTruthy operand =
@@ -34,6 +34,15 @@ type Interpreter() =
             | TokenType.BANG -> BoolValue(not (isTruthy right))
             | _ -> NoValue
 
+        | Logical (left, operator, right) ->
+            let lv = evaluate left
+
+            match operator.tokenType with
+            | TokenType.OR -> if isTruthy lv then lv else visit right
+            | TokenType.AND -> if isTruthy lv then visit right else lv
+            | _ ->
+                Lox.error operator "Invalid logical operator."
+                NoValue
         | Binary (left, operator, right) ->
             let lv = evaluate left
             let rv = evaluate right
@@ -56,7 +65,7 @@ type Interpreter() =
             | _ -> NoValue
 
         | Grouping expression -> evaluate expression
-        | Variable (name) -> environment.Get name
+        | Variable name -> environment.Get name
         | Assign (name, value) ->
             let value = evaluate value
             environment.Assign name value
@@ -109,7 +118,7 @@ type Interpreter() =
         | :? RuntimeError as re -> Lox.runtimeError re
 
     interface IExprVisitor<Value> with
-        member this.Visit (expr) = visit expr
+        member this.Visit expr = visit expr
 
     interface IStmtVisitor<obj> with
-        member this.Visit (stmt) = visitStatement stmt
+        member this.Visit stmt = visitStatement stmt
