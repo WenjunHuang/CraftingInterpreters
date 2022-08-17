@@ -8,6 +8,10 @@
 #include "token_type.h"
 
 using namespace icu;
+template <class... Ts>
+struct overloaded : Ts... {
+  using Ts::operator()...;
+};
 
 namespace lox {
 struct ParserInner {
@@ -74,12 +78,30 @@ struct ParserInner {
       auto initializer = expression();
       consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
       return std::make_unique<Statement>(Var{name, std::move(initializer)});
+    } else {
+      consume(TokenType::SEMICOLON, "Expect '=' after variable name.");
+      return std::make_unique<Statement>(Var{name, std::nullopt});
     }
-
-    return nullptr;
   }
 
-  ExpressionPtr expression() { return nullptr; }
+  ExpressionPtr expression() { return assignment(); }
+
+  ExpressionPtr logicalOr() { return nullptr; }
+  ExpressionPtr assignment() {
+    auto expr = logicalOr();
+    if (matching(TokenType::EQUAL)) {
+      auto value = expression();
+      return std::make_unique<Expression>(std::visit(
+          overloaded{[](auto&& arg) { return Expression{arg}; },
+                     [this](Variable&& arg) -> Expression {
+                       auto value = assignment();
+                       return Assign{std::move(arg.name), std::move(value)};
+                     }},
+          std::move(*(expr.release()))));
+    } else {
+      return expr;
+    }
+  }
 
   StatementPtr statement() { return nullptr; }
 
