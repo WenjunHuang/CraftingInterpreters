@@ -1,9 +1,13 @@
 package com.github.wenjunhuang.lox
+import com.github.wenjunhuang.lox.Value.NoValue
+
 import scala.collection.mutable
 import scala.util.control.Breaks.*
 
 class Parser(private val tokens: Vector[Token]):
   import TokenType.*
+  import Value.*
+
   var current = 0
 
   def parse(): Either[ParseError, Vector[Statement]] =
@@ -74,7 +78,7 @@ class Parser(private val tokens: Vector[Token]):
   private def expression(): Expression = assignment()
 
   private def assignment(): Expression =
-    val expr = equality()
+    val expr = or()
     if matching(TokenType.EQUAL) then
       expr match
         case Expression.Variable(name) =>
@@ -84,6 +88,23 @@ class Parser(private val tokens: Vector[Token]):
           error(previous, "Invalid assignment target.")
           expr
     else expr
+
+  private def or(): Expression =
+    LazyList
+      .continually(())
+      .takeWhile(_ => matching(TokenType.OR))
+      .foldLeft(and()) { (accum, _) =>
+        val operator = previous
+        val right = and()
+        Expression.Logical(accum, operator, right)
+      }
+  private def and(): Expression =
+    var expr = equality()
+    while matching(TokenType.AND) do
+      val operator = previous
+      val right = equality()
+      expr = Expression.Logical(expr, operator, right)
+    expr
 
   private def equality(): Expression =
     var expr = comparison()
@@ -125,9 +146,9 @@ class Parser(private val tokens: Vector[Token]):
     else primary()
 
   private def primary(): Expression =
-    if matching(FALSE) then Expression.Literal(Some(false))
-    else if matching(TRUE) then Expression.Literal(Some(true))
-    else if matching(NIL) then Expression.Literal(None)
+    if matching(FALSE) then Expression.Literal(BooleanValue(false))
+    else if matching(TRUE) then Expression.Literal(BooleanValue(true))
+    else if matching(NIL) then Expression.Literal(NoValue)
     else if matching(IDENTIFIER) then Expression.Variable(previous)
     else if matching(NUMBER, STRING) then Expression.Literal(previous.literal)
     else if matching(LEFT_PAREN) then

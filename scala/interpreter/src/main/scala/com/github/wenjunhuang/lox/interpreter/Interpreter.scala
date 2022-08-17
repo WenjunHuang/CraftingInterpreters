@@ -2,8 +2,9 @@ package com.github.wenjunhuang.lox.interpreter
 
 import com.github.wenjunhuang.lox.*
 
-class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
+class Interpreter extends ExprVisitor with StatementVisitor[Unit]:
   import TokenType.*
+  import Value.*
 
   private var environment = Environment.Global
 
@@ -11,77 +12,67 @@ class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
     try for stm <- statements do execute(stm)
     catch case error: RuntimeError => Lox.runtimeError(error)
 
-  override def visitLiteral(expr: Expression.Literal): Option[Any] = expr.value
+  override def visitLiteral(expr: Expression.Literal): Value = expr.value
 
-  override def visitUnary(expr: Expression.Unary): Option[Any] =
+  override def visitUnary(expr: Expression.Unary): Value =
     val right = evaluate(expr.right)
     expr.operator.tt match
       case TokenType.MINUS =>
-        checkNumberOperand(expr.operator, right, it => Option(-it))
+        checkNumberOperand(expr.operator, right, it => NumericValue(-it))
       case TokenType.BANG =>
-        Some(!isTruthy(right))
+        BooleanValue(!isTruthy(right))
       case _ =>
-        None
+        NoValue
 
-  override def visitBinaryExpr(expr: Expression.Binary): Option[Any] =
+  override def visitBinaryExpr(expr: Expression.Binary): Value =
     val left = evaluate(expr.left)
     val right = evaluate(expr.right)
     expr.operator.tt match
       case TokenType.MINUS =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => Option(a - b))
+        checkNumberOperands(expr.operator, left, right, (a, b) => NumericValue(a - b))
       case TokenType.PLUS =>
         (left, right) match
-          case (Some(l: Double), Some(r: Double)) => Some(l + r)
-          case (Some(l: String), Some(r: String)) => Some(l + r)
-          case _                                  => None
+          case (NumericValue(l), NumericValue(r)) => NumericValue(l + r)
+          case (StringValue(l), StringValue(r))   => StringValue(l + r)
+          case _                                  => NoValue
       case TokenType.SLASH =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => Option(a / b))
+        checkNumberOperands(expr.operator, left, right, (a, b) => NumericValue(a / b))
       case TokenType.STAR =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => Option(a * b))
+        checkNumberOperands(expr.operator, left, right, (a, b) => NumericValue(a * b))
       case GREATER =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => Option(a > b))
+        checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a > b))
       case GREATER_EQUAL =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => Option(a >= b))
+        checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a >= b))
       case LESS =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => Option(a < b))
+        checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a < b))
       case LESS_EQUAL =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => Option(a <= b))
+        checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a <= b))
       case BANG_EQUAL =>
-        (left, right) match
-          case (Some(l), Some(r)) => Some(!l.equals(r))
-          case (None, None)       => Some(false)
-          case _                  => Some(true)
+        BooleanValue(left != right)
       case EQUAL_EQUAL =>
-        (left, right) match
-          case (Some(l), Some(r)) => Some(l.equals(r))
-          case (None, None)       => Some(true)
-          case _                  => Some(false)
+        BooleanValue(left == right)
       case _ =>
-        None
+        NoValue
 
-  override def visitGroupExpr(expr: Expression.Grouping): Option[Any] =
+  override def visitGroupExpr(expr: Expression.Grouping): Value =
     evaluate(expr.expression)
 
-  private def evaluate(expr: Expression): Option[Any] = expr.accept(this)
+  private def evaluate(expr: Expression) = expr.accept(this)
 
-  private def isTruthy(value: Option[Any]): Boolean =
+  private def isTruthy(value: Value): Boolean =
     value match
-      case Some(v: Boolean) => v
-      case None             => false
-      case _                => true
+      case BooleanValue(v) => v
+      case NoValue         => false
+      case _               => true
 
-  private def checkNumberOperand[T](operator: Token, operand: Option[Any], func: Double => T): T =
+  private def checkNumberOperand[T](operator: Token, operand: Value, func: Double => T): T =
     operand match
-      case Some(v: Double) => func(v)
-      case _               => throw new RuntimeError(operator, "Operand must be number.")
+      case NumericValue(v: Double) => func(v)
+      case _                       => throw new RuntimeError(operator, "Operand must be number.")
 
-  private def checkNumberOperands[T](operator: Token,
-                                     left: Option[Any],
-                                     right: Option[Any],
-                                     func: (Double, Double) => T
-  ): T =
+  private def checkNumberOperands[T](operator: Token, left: Value, right: Value, func: (Double, Double) => T): T =
     (left, right) match
-      case (Some(l: Double), Some(r: Double)) => func(l, r)
+      case (NumericValue(l), NumericValue(r)) => func(l, r)
       case _                                  => throw new RuntimeError(operator, "Operands must be numbers.")
 
   override def visitExpressionStatement(statement: Statement.Expr): Unit =
@@ -93,18 +84,18 @@ class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
     println(value)
     ()
 
-  override def visitVariable(expr: Expression.Variable): Option[Any] =
+  override def visitVariable(expr: Expression.Variable): Value =
     environment.get(expr.name)
 
   override def visitVarStatement(statement: Statement.Var): Unit =
     val value = statement.initializer match
       case Some(initializer) =>
         evaluate(initializer)
-      case None => None
+      case None => NoValue
 
     environment.define(statement.name.lexeme, value)
 
-  override def visitAssignment(expr: Expression.Assign): Option[Any] =
+  override def visitAssignment(expr: Expression.Assign): Value =
     val value = evaluate(expr.value)
     environment.assign(expr.name, value)
     value
@@ -127,4 +118,16 @@ class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
         case None       =>
 
   private def execute(statement: Statement): Unit = statement.accept(this)
+
+  override def visitLogical(expr: Expression.Logical): Value =
+    val left = evaluate(expr.left)
+    expr.operator.tt match
+      case TokenType.OR =>
+        if isTruthy(left) then left else evaluate(expr.right)
+      case TokenType.AND =>
+        if isTruthy(left) then evaluate(expr.right) else left
+      case _ =>
+        Lox.runtimeError(new RuntimeError(expr.operator, "Invalid logical operator."))
+        NoValue
+
 end Interpreter

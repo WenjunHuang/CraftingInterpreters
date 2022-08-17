@@ -2,12 +2,12 @@ package com.github.wenjunhuang.lox
 import com.github.wenjunhuang.lox.Expression.*
 import com.github.wenjunhuang.lox.TokenType.*
 
-trait ExprVisitor[+A]:
-  def visitLiteral(expr: Literal): A
-  def visitUnary(expr: Unary): A
-  def visitAssignment(expr: Assign): A
-  def visitBinaryExpr(expr: Binary): A
-  def visitGroupExpr(expr: Grouping): A
-  def visitVariable(expr: Variable): A
+trait ExprVisitor:
+  def visitLiteral(expr: Literal): Value
+  def visitUnary(expr: Unary): Value
+  def visitAssignment(expr: Assign): Value
+  def visitBinaryExpr(expr: Binary): Value
+  def visitGroupExpr(expr: Grouping): Value
+  def visitVariable(expr: Variable): Value
+  def visitLogical(expr: Logical): Value
 end ExprVisitor
-

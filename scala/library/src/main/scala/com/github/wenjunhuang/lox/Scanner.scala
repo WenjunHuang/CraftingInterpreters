@@ -4,6 +4,7 @@ import scala.util.control.Breaks.*
 
 class Scanner(private val source: String):
   import TokenType.*
+  import Value.*
 
   val tokens: mutable.Buffer[Token] = mutable.Buffer[Token]()
   // The start field points to the first character in the lexeme being scanned
@@ -83,7 +84,13 @@ class Scanner(private val source: String):
       advance()
       while isDigit(peek()) do advance()
 
-    addToken(NUMBER, source.substring(start, current).toDoubleOption)
+    addToken(
+      NUMBER,
+      source.substring(start, current).toDoubleOption.map(Value.NumericValue(_)).getOrElse {
+        Lox.error(line, "Invalid number.")
+        NoValue
+      }
+    )
 
   private def peekNext(): Char =
     if current + 1 >= source.length then '\u0000'
@@ -99,7 +106,7 @@ class Scanner(private val source: String):
       advance() // The closing "
       // Trim the surrounding quotes
       val value = source.substring(start + 1, current - 1)
-      addToken(TokenType.STRING, Some(value))
+      addToken(TokenType.STRING, Value.StringValue(value))
 
   private def peek(): Char =
     if isAtEnd then '\u0000'
@@ -115,7 +122,7 @@ class Scanner(private val source: String):
     else
       current += 1; true
 
-  private def addToken(tokenType: TokenType, literal: Option[Any] = None) =
+  private def addToken(tokenType: TokenType, literal: Value = Value.NoValue) =
     val text = source.substring(start, current)
     tokens.append(Token(tokenType, text, literal, line))
 
@@ -125,7 +132,7 @@ class Scanner(private val source: String):
 object Scanner:
   import TokenType.*
 
-  def apply(source:String):Scanner = new Scanner(source)
+  def apply(source: String): Scanner = new Scanner(source)
 
   val keywords: Map[String, TokenType] = Map(
     "and" -> AND,

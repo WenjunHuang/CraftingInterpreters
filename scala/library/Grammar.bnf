@@ -21,7 +21,9 @@ ifStmt ::= "if" "(" expression ")" statement ("else" statement)?
 exprStmt ::= expression ";"
 
 expression ::= assignmentExpr
-assignmentExpr ::= IDENTIFIER '=' assignmentExpr | equalityExpr
+assignmentExpr ::= IDENTIFIER '=' assignmentExpr | logicOrExpr
+logicOrExpr ::= logicAndExpr ('or' logicAndExpr)*
+logicAndExpr ::= equalityExpr ('and' equalityExpr)*
 equalityExpr ::= comparisonExpr (('!=' | '==') comparisonExpr)*
 comparisonExpr ::= termExpr (('>'|'>='|'<'|'<=') termExpr)*
 termExpr ::= factorExpr (( '-'|'+') factorExpr)*
