@@ -1,7 +1,5 @@
 package com.github.wenjunhuang.lox
 
-import com.fasterxml.jackson.module.kotlin.ReflectionCache.BooleanTriState.False
-
 enum TokenType:
   // Single-character tokens.
   case LEFT_PAREN

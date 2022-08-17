@@ -37,10 +37,23 @@ class Parser(private val tokens: Vector[Token]):
 
   private def statement(): Statement =
     if matching(TokenType.PRINT) then printStatement()
+    else if matching(TokenType.IF) then ifStatement()
     else if matching(TokenType.LEFT_BRACE) then Statement.Block(block())
     else expressionStatement()
 
-  private def block():Vector[Statement] =
+  private def ifStatement(): Statement =
+    consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'.")
+    val condition = expression()
+    consume(TokenType.RIGHT_PAREN, "Expect ')' after if condition.")
+
+    val thenBranch = statement()
+    val elseBranch =
+      if matching(TokenType.ELSE) then Some(statement())
+      else None
+
+    Statement.If(condition, thenBranch, elseBranch)
+
+  private def block(): Vector[Statement] =
     val statements = mutable.Buffer[Statement]()
     while !check(TokenType.RIGHT_BRACE) && !isAtEnd do
       declaration() match

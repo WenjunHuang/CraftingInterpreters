@@ -5,4 +5,5 @@ trait StatementVisitor[+T]:
   def visitExpressionStatement(statement: Statement.Expr): T
   def visitPrintStatement(statement: Statement.Print): T
   def visitBlockStatement(statement:Statement.Block): T
+  def visitIfStatement(statement:Statement.If): T
 end StatementVisitor

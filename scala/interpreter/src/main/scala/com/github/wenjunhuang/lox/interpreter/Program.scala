@@ -1,25 +1,19 @@
-package com.github.wenjunhuang.lox
-import java.io.{BufferedReader, InputStreamReader}
-import java.nio.file.{Files, Paths}
+package com.github.wenjunhuang.lox.interpreter
+
+import com.github.wenjunhuang.lox.*
+
 import scala.collection.mutable
 import scala.io.StdIn
-import scala.util.Using
 
-object Lox:
-  var hasRuntimeError = false
-  var hadError = false
+object Program:
   def main(args: Array[String]) =
     runPrompt()
-//    run("""
-//          |print "one"
-//          |print true;
-//          |print 2 + 1;
-//          |""".stripMargin)
 
-  private def runFile(path: String) =
-    val bytes = Files.readAllBytes(Paths.get(path))
-  end runFile
-
+  //    run("""
+  //          |print "one"
+  //          |print true;
+  //          |print 2 + 1;
+  //          |""".stripMargin)
   def runPrompt() =
     val interpreter = new Interpreter()
     val buffer = mutable.Buffer[String]()
@@ -52,20 +46,3 @@ object Lox:
         end match
       case None =>
   end run
-
-  def error(token: Token, message: String): Unit =
-    if token.tt == TokenType.EOF then report(token.line, "", message)
-    else report(token.line, s" at '${token.lexeme}'", message)
-
-  def error(line: Int, message: String): Unit =
-    report(line, "", message)
-
-  def runtimeError(error: RuntimeError) =
-    println(s"${error.getMessage}\n[line ${error.token.line}]")
-    hasRuntimeError = true
-  end runtimeError
-  private def report(line: Int, where: String, message: String) =
-    println(s"[line $line] Error $where: $message")
-    hadError = true
-  end report
-end Lox

@@ -1,18 +1,19 @@
-package com.github.wenjunhuang.lox
+package com.github.wenjunhuang.lox.interpreter
 
-import com.github.wenjunhuang.lox.Expression.{Binary, Grouping, Literal, Unary}
-import com.github.wenjunhuang.lox.TokenType.*
+import com.github.wenjunhuang.lox.*
 
 class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
+  import TokenType.*
+
   private var environment = Environment.Global
 
   def interpret(statements: Seq[Statement]): Unit =
     try for stm <- statements do execute(stm)
     catch case error: RuntimeError => Lox.runtimeError(error)
 
-  override def visitLiteral(expr: Literal): Option[Any] = expr.value
+  override def visitLiteral(expr: Expression.Literal): Option[Any] = expr.value
 
-  override def visitUnary(expr: Unary): Option[Any] =
+  override def visitUnary(expr: Expression.Unary): Option[Any] =
     val right = evaluate(expr.right)
     expr.operator.tt match
       case TokenType.MINUS =>
@@ -22,7 +23,7 @@ class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
       case _ =>
         None
 
-  override def visitBinaryExpr(expr: Binary): Option[Any] =
+  override def visitBinaryExpr(expr: Expression.Binary): Option[Any] =
     val left = evaluate(expr.left)
     val right = evaluate(expr.right)
     expr.operator.tt match
@@ -58,7 +59,7 @@ class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
       case _ =>
         None
 
-  override def visitGroupExpr(expr: Grouping): Option[Any] =
+  override def visitGroupExpr(expr: Expression.Grouping): Option[Any] =
     evaluate(expr.expression)
 
   private def evaluate(expr: Expression): Option[Any] = expr.accept(this)
@@ -69,7 +70,7 @@ class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
       case None             => false
       case _                => true
 
-  private def checkNumberOperand[T](operator: Token, operand: Option[Any], func: (Double) => T): T =
+  private def checkNumberOperand[T](operator: Token, operand: Option[Any], func: Double => T): T =
     operand match
       case Some(v: Double) => func(v)
       case _               => throw new RuntimeError(operator, "Operand must be number.")
@@ -82,8 +83,6 @@ class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
     (left, right) match
       case (Some(l: Double), Some(r: Double)) => func(l, r)
       case _                                  => throw new RuntimeError(operator, "Operands must be numbers.")
-
-  private def execute(statement: Statement): Unit = statement.accept(this)
 
   override def visitExpressionStatement(statement: Statement.Expr): Unit =
     evaluate(statement.expression)
@@ -120,4 +119,12 @@ class Interpreter extends ExprVisitor[Option[Any]] with StatementVisitor[Unit]:
       for statement <- statements do execute(statement)
     finally this.environment = previous
 
+  override def visitIfStatement(statement: Statement.If): Unit =
+    if isTruthy(evaluate(statement.condition)) then execute(statement.thenBranch)
+    else
+      statement.elseBranch match
+        case Some(stmt) => execute(stmt)
+        case None       =>
+
+  private def execute(statement: Statement): Unit = statement.accept(this)
 end Interpreter
