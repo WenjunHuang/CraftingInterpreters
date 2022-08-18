@@ -23,7 +23,7 @@ object Program:
       .foreach(run(interpreter, buffer))
 
   private def run(interpreter: Interpreter, buffer: mutable.Buffer[String])(source: String): Unit =
-    val realSource = if source == "{" then
+    val realSource = if source.trim.endsWith("{") then
       buffer.append(source)
       None
     else if source == "}" then

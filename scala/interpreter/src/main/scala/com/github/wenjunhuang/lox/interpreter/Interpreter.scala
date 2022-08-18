@@ -2,7 +2,7 @@ package com.github.wenjunhuang.lox.interpreter
 
 import com.github.wenjunhuang.lox.*
 
-class Interpreter extends ExprVisitor with StatementVisitor[Unit]:
+class Interpreter extends ExprVisitor with StatementVisitor:
   import TokenType.*
   import Value.*
 
@@ -129,5 +129,8 @@ class Interpreter extends ExprVisitor with StatementVisitor[Unit]:
       case _ =>
         Lox.runtimeError(new RuntimeError(expr.operator, "Invalid logical operator."))
         NoValue
+
+  override def visitWhileStatement(statement: Statement.While): Unit =
+    while isTruthy(evaluate(statement.condition)) do execute(statement.body)
 
 end Interpreter

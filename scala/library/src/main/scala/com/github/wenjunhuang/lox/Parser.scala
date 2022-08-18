@@ -42,8 +42,16 @@ class Parser(private val tokens: Vector[Token]):
   private def statement(): Statement =
     if matching(TokenType.PRINT) then printStatement()
     else if matching(TokenType.IF) then ifStatement()
+    else if matching(TokenType.WHILE) then whileStatement()
     else if matching(TokenType.LEFT_BRACE) then Statement.Block(block())
     else expressionStatement()
+
+  private def whileStatement(): Statement =
+    consume(TokenType.LEFT_PAREN, "Expect '(' after 'while'.")
+    val condition = expression()
+    consume(TokenType.RIGHT_PAREN, "Expect ')' after condition.")
+    val body = statement()
+    Statement.While(condition, body)
 
   private def ifStatement(): Statement =
     consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'.")
