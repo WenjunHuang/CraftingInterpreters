@@ -239,7 +239,7 @@ struct ScannerInner {
   void addToken(TokenType type, Value literal = {}) {
     UnicodeString text;
     source.extractBetween(start, current, text);
-    tokens.emplace_back(type, text, literal, line);
+    tokens.emplace_back(type, std::move(text), std::move(literal), line);
   }
 };
 
@@ -250,6 +250,6 @@ std::vector<Token> Scanner::scanTokens() {
   inner->scanTokens();
   return std::move(inner->tokens);
 }
-Scanner::~Scanner() {}
+Scanner::~Scanner() = default;
 
 }  // namespace lox

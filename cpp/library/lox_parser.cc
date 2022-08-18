@@ -269,6 +269,6 @@ Parser::Parser(std::vector<Token> tokens)
 std::vector<Statement> Parser::parse() {
   return inner->parse();
 }
-Parser::~Parser() {}
+Parser::~Parser() = default;
 
 }  // namespace lox

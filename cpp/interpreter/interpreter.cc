@@ -7,12 +7,19 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <utility>
 #include <variant>
 #include "lox.h"
 #include "runtime_error.h"
 #include "util.h"
 namespace {
 using namespace lox;
+
+struct scope {
+  std::function<void()> f;
+  explicit scope(std::function<void()> f) : f(std::move(f)) {}
+  ~scope() { f(); }
+};
 
 template <typename T>
 T checkNumberOperands(const Token& operatorToken,
@@ -180,7 +187,7 @@ struct ExpressionVisitor {
     auto condition = evaluate(ifStmt.condition);
     if (isTruthy(condition)) {
       evaluate(*ifStmt.thenBranch);
-    } else if (ifStmt.elseBranch) {
+    } else if (ifStmt.elseBranch.has_value()) {
       evaluate(*ifStmt.elseBranch.value());
     }
   }
@@ -193,16 +200,13 @@ struct ExpressionVisitor {
   void visitStmt(const While& stmt) {}
   void visitStmt(const Block& stmt) {
     auto previous = environment;
-    try {
-      environment = std::make_shared<Environment>(environment);
-      for (const auto& statement : stmt.statements) {
-        evaluate(statement);
-      }
-    } catch (...) {
-      environment = previous;
-      throw;
+    environment = std::make_shared<Environment>(environment);
+    scope guard{[this, previous]() { environment = previous; }};
+    for (const auto& statement : stmt.statements) {
+      evaluate(statement);
     }
   }
+
   void evaluate(const Statement& statement) {
     std::visit([this](auto&& s) { visitStmt(s); }, statement);
   }
