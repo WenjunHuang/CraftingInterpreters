@@ -43,8 +43,44 @@ class Parser(private val tokens: Vector[Token]):
     if matching(TokenType.PRINT) then printStatement()
     else if matching(TokenType.IF) then ifStatement()
     else if matching(TokenType.WHILE) then whileStatement()
+    else if matching(TokenType.FOR) then forStatement()
     else if matching(TokenType.LEFT_BRACE) then Statement.Block(block())
     else expressionStatement()
+
+  private def forStatement(): Statement =
+    consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.")
+    val initializer =
+      if matching(TokenType.SEMICOLON) then None
+      else if matching(TokenType.VAR) then Some(varDeclaration())
+      else Some(expressionStatement())
+
+    val condition =
+      if !check(TokenType.SEMICOLON) then Some(expression())
+      else None
+
+    consume(TokenType.SEMICOLON, "Expect ';' after loop condition.")
+    val increment =
+      if !check(TokenType.RIGHT_PAREN) then Some(expression())
+      else None
+
+    consume(TokenType.RIGHT_PAREN, "Expect ')' after for clauses.")
+
+    var body = statement()
+    body = increment match
+      case Some(inc) => Statement.Block(Vector(body, Statement.Expr(inc)))
+      case None      => body
+
+    val whileCond = condition match
+      case Some(cond) => cond
+      case None       => Expression.Literal(Value.BooleanValue(true))
+
+    body = Statement.While(whileCond, body)
+
+    body = initializer match
+      case Some(init) => Statement.Block(Vector(init, body))
+      case None       => body
+
+    body
 
   private def whileStatement(): Statement =
     consume(TokenType.LEFT_PAREN, "Expect '(' after 'while'.")
