@@ -10,8 +10,9 @@
 
 int main() {
   std::string line;
-  lox::Interpreter interpreter;
   icu::UnicodeString buffer;
+
+  lox::Interpreter interpreter;
 
   while (true) {
     std::cout << "> " << std::flush;
@@ -23,10 +24,14 @@ int main() {
       icu::UnicodeString sourceLine{line.c_str()};
       auto& trimmed = sourceLine.trim();
       if (trimmed.endsWith("{")) {
-        buffer.append(sourceLine);
+        if (buffer.isEmpty()) {
+          buffer = std::move(sourceLine);
+        } else {
+          buffer.append(sourceLine);
+        }
       } else if (trimmed.endsWith("}")) {
         buffer.append(sourceLine);
-        source.emplace(std::move(buffer));
+        source.emplace(buffer);
         buffer.remove();
       } else {
         if (!buffer.isEmpty()) {
@@ -36,6 +41,7 @@ int main() {
         }
       }
     }
+
     if (source.has_value()) {
       auto tokens = lox::Scanner(std::exchange(source, std::nullopt).value())
                         .scanTokens();

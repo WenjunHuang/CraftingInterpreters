@@ -41,10 +41,14 @@ struct ScannerInner {
   NumberFormat* numberFormatter = nullptr;
 
   explicit ScannerInner(UnicodeString source)
-      : source(std::move(source)), sourceLength{source.length()} {
+      : source(std::move(source)), sourceLength{this->source.length()} {
     UErrorCode status = U_ZERO_ERROR;
     numberFormatter = NumberFormat::createInstance(Locale::getDefault(),
                                                    UNUM_DECIMAL, status);
+  }
+  ~ScannerInner() {
+    if (numberFormatter)
+      delete numberFormatter;
   }
 
   bool isAtEnd() { return current >= sourceLength; }
