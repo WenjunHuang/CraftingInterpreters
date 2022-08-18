@@ -4,16 +4,17 @@
 
 #pragma once
 
-#include <optional>
 #include <unicode/unistr.h>
+#include <optional>
 #include <variant>
 
 namespace lox {
 using NumericValue = double;
 using StringValue = icu::UnicodeString;
 using BooleanValue = bool;
-using NoValue = std::nullopt_t;
+constexpr std::monostate NoValue{};
 
-using Value = std::variant<NoValue, NumericValue, StringValue, BooleanValue>;
+using Value =
+    std::variant<std::monostate, NumericValue, StringValue, BooleanValue>;
 
 }  // namespace lox

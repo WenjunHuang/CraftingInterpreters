@@ -15,6 +15,7 @@ class ScannerInner;
 class Scanner {
  public:
   explicit Scanner(icu::UnicodeString source);
+  ~Scanner();
 
   std::vector<Token> scanTokens();
 

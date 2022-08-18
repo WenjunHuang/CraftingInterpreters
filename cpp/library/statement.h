@@ -16,8 +16,8 @@ class If;
 class Var;
 class While;
 class Block;
-using Statement = std::variant<std::nullopt_t,Expr, Print, If, Var, While, Block>;
 
+using Statement = std::variant<Expr, Print, If, Var, While, Block>;
 using StatementPtr = std::unique_ptr<Statement>;
 
 struct Expr {
@@ -36,7 +36,7 @@ struct If {
 
 struct Var {
   Token name;
-  std::optional<ExpressionPtr> initializer;
+  std::optional<Expression> initializer;
 };
 
 struct While {

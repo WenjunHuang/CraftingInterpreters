@@ -19,15 +19,8 @@ struct Literal {
   Value value;
 };
 
-using Expression = std::variant<std::nullopt_t,
-                                Literal,
-                                Logical,
-                                Unary,
-                                Assign,
-                                Binary,
-                                Grouping,
-                                Variable>;
-
+using Expression =
+    std::variant<Literal, Logical, Unary, Assign, Binary, Grouping, Variable>;
 using ExpressionPtr = std::unique_ptr<Expression>;
 
 struct Unary {

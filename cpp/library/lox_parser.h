@@ -14,6 +14,7 @@ class ParserInner;
 class Parser {
  public:
   explicit Parser(std::vector<Token> tokens);
+  ~Parser();
   std::vector<Statement> parse();
 
  private:

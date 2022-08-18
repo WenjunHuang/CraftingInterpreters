@@ -7,11 +7,11 @@
 #include <unicode/ustream.h>
 #include <iostream>
 
-using namespace icu;
+namespace lox {
 
-void lox::report(int line,
-                 const icu::UnicodeString& where,
-                 const icu::UnicodeString& message) {
+void report(int line,
+            const icu::UnicodeString& where,
+            const icu::UnicodeString& message) {
   using namespace icu;
   UnicodeString result;
   UErrorCode success = U_ZERO_ERROR;
@@ -22,7 +22,8 @@ void lox::report(int line,
             << std::endl;
 }
 
-void lox::error(const lox::Token& token, const icu::UnicodeString& message) {
+void error(const Token& token, const icu::UnicodeString& message) {
+  using namespace icu;
   if (token.tokenType == TokenType::EndOfFile)
     report(token.line, "", message);
   else {
@@ -35,3 +36,14 @@ void lox::error(const lox::Token& token, const icu::UnicodeString& message) {
         message);
   }
 }
+void runtimeError(const RuntimeError& error) {
+  using namespace icu;
+  UnicodeString result;
+  UErrorCode success = U_ZERO_ERROR;
+  Formattable args[] = {Formattable(error.message), Formattable(error.line)};
+  std::cerr << MessageFormat::format("{0}\n[line {1}]", args, sizeof(args),
+                                     result, success)
+            << std::endl;
+}
+
+}  // namespace lox

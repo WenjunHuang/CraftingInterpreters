@@ -52,14 +52,15 @@ struct ScannerInner {
   void scanTokens() {
     while (!isAtEnd()) {
       start = current;
+      scanToken();
     }
 
-    tokens.emplace_back(TokenType::EndOfFile, "", std::nullopt, line);
+    tokens.emplace_back(TokenType::EndOfFile, "", NoValue, line);
   }
 
   char16_t advance() {
     current += 1;
-    return source[current];
+    return source[current - 1];
   }
 
   char16_t peek() {
@@ -181,8 +182,10 @@ struct ScannerInner {
     Formattable result;
     UErrorCode status = U_ZERO_ERROR;
     numberFormatter->parse(text, result, status);
-
-    addToken(TokenType::NUMBER, result.getDouble());
+    if (result.getType() == Formattable::kDouble)
+      addToken(TokenType::NUMBER, result.getDouble());
+    else if (result.getType() == Formattable::kLong)
+      addToken(TokenType::NUMBER, (double)result.getLong());
   }
 
   void scanIdentifier() {
@@ -228,12 +231,12 @@ struct ScannerInner {
     else {
       advance();
       UnicodeString text;
-      source.extractBetween(start, current, text);
+      source.extractBetween(start + 1, current - 1, text);
       addToken(TokenType::STRING, text);
     }
   }
 
-  void addToken(TokenType type, Value literal = std::nullopt) {
+  void addToken(TokenType type, Value literal = {}) {
     UnicodeString text;
     source.extractBetween(start, current, text);
     tokens.emplace_back(type, text, literal, line);
@@ -247,5 +250,6 @@ std::vector<Token> Scanner::scanTokens() {
   inner->scanTokens();
   return std::move(inner->tokens);
 }
+Scanner::~Scanner() {}
 
 }  // namespace lox

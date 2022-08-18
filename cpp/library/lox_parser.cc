@@ -2,23 +2,22 @@
 // Created by rick on 8/17/2022.
 //
 
-#include "parser.h"
+#include "lox_parser.h"
 #include <unicode/unistr.h>
+
+#include <utility>
 #include "lox.h"
 #include "token_type.h"
+#include "util.h"
 
 using namespace icu;
-template <class... Ts>
-struct overloaded : Ts... {
-  using Ts::operator()...;
-};
-template <class... Ts>
-overloaded(Ts...) -> overloaded<Ts...>;
 
 namespace lox {
 struct ParserInner {
   std::vector<Token> tokens;
   int current = 0;
+
+  explicit ParserInner(std::vector<Token> tokens) : tokens{std::move(tokens)} {}
 
   std::vector<Statement> parse() {
     std::vector<Statement> statements{};
@@ -79,7 +78,7 @@ struct ParserInner {
     if (matching(TokenType::EQUAL)) {
       auto initializer = expression();
       consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
-      return Var{name, std::make_unique<Expression>(std::move(initializer))};
+      return Var{name, std::move(initializer)};
     } else {
       consume(TokenType::SEMICOLON, "Expect '=' after variable name.");
       return Var{name, std::nullopt};
@@ -171,7 +170,7 @@ struct ParserInner {
     else if (matching(TokenType::TRUE))
       return Literal{true};
     else if (matching(TokenType::NIL))
-      return Literal{std::nullopt};
+      return Literal{NoValue};
     else if (matching(TokenType::IDENTIFIER))
       return Variable{previous()};
     else if (matching(TokenType::NUMBER, TokenType::STRING))
@@ -190,10 +189,9 @@ struct ParserInner {
       return std::visit(
           overloaded{[this](auto&& arg) -> Expression {
                        lox::error(previous(), "Invalid assignment target");
-                       return std::move(arg);
+                       return std::forward<decltype(arg)>(arg);
                      },
                      [this](Variable&& arg) -> Expression {
-                       auto value = assignment();
                        return Assign{
                            std::move(arg.name),
                            std::make_unique<Expression>(assignment())};
@@ -271,5 +269,6 @@ Parser::Parser(std::vector<Token> tokens)
 std::vector<Statement> Parser::parse() {
   return inner->parse();
 }
+Parser::~Parser() {}
 
 }  // namespace lox
