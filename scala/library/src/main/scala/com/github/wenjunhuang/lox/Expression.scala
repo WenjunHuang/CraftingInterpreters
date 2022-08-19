@@ -19,4 +19,5 @@ enum Expression:
       case b: Binary   => visitor.visitBinaryExpr(b)
       case g: Grouping => visitor.visitGroupExpr(g)
       case v: Variable => visitor.visitVariable(v)
+      case c: Call     => visitor.visitCall(c)
     end match

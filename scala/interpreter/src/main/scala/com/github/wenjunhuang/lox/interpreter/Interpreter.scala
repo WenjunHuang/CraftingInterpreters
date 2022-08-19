@@ -8,6 +8,14 @@ class Interpreter extends ExprVisitor with StatementVisitor:
 
   private var environment = Environment.Global
 
+  Environment.Global.define(
+    "clock",
+    Value.CallableValue(0,
+                        params =>
+                          val result = System.currentTimeMillis() / 1000.0
+                          NumericValue(result)
+    )
+  )
   def interpret(statements: Seq[Statement]): Unit =
     try for stm <- statements do execute(stm)
     catch case error: RuntimeError => Lox.runtimeError(error)
@@ -135,14 +143,27 @@ class Interpreter extends ExprVisitor with StatementVisitor:
 
   override def visitCall(expr: Expression.Call): Value =
     val callee = evaluate(expr.callee)
-    val arguments = expr.arguments.map(evaluate)
 
-//    callee match
-//      case Value.CallableValue(arguments,body) =>
-//        val arguments = expr.arguments.map(evaluate)
-//        val environment = Environment(this.environment)
-//        for (i <- 0 until arguments.length) environment.define(arguments(i).name, arguments(i))
-//        executeBlock(body, environment)
-//        NoValue
-    NoValue
+    callee match
+      case Value.CallableValue(_, body) =>
+        val arguments = expr.arguments.map(evaluate)
+        body(arguments)
+      case _ =>
+        Lox.runtimeError(new RuntimeError(expr.paren, "Can only call functions and classes."))
+        NoValue
+
+  override def visitFunctionStatement(statement: Statement.Func): Unit =
+    val currentEnvironment = environment
+    currentEnvironment.define(
+      statement.name.lexeme,
+      Value.CallableValue(
+        statement.params.size,
+        { params =>
+          val funEnvironment = Environment(currentEnvironment)
+          statement.params.zip(params).foreach { case (param, value) => funEnvironment.define(param.lexeme, value) }
+          executeBlock(statement.body.statements, funEnvironment)
+          NoValue
+        }
+      )
+    )
 end Interpreter

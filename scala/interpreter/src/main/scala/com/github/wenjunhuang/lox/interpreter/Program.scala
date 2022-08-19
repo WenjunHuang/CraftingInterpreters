@@ -6,17 +6,13 @@ import org.jline.reader.{LineReader, LineReaderBuilder}
 import scala.collection.mutable
 import scala.io.StdIn
 object Program:
-  def main(args: Array[String]) =
-    val source =
-      """
-        |var a = 0;
-        |var temp = 0;
-        |for (var b = 1; a < 10000; b = temp + b){
-        print a;
-        temp = a;
-        a = b;
-        }
-        |""".stripMargin
+  def main(args: Array[String]): Unit =
+    val source = """
+                   |fun sayHi(first, last){
+                   |print "Hi, " + first + " " + last + "!";
+                   |}
+                   |sayHi("Dear","Reader");
+                   |""".stripMargin
     val interpreter = new Interpreter()
     runSource(interpreter, source)
 

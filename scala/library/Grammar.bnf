@@ -12,7 +12,10 @@ extends(".*Stmt") = statement
 }
 
 program ::= declaration * <<eof>>
-declaration ::= varDecl | statement
+declaration ::= funDecl | varDecl | statement
+funDecl ::= "fun" function
+function ::= IDENTIFIER "(" parameters? ")" blockStmt
+parameters ::= IDENTIFIER ("," IDENTIFIER)*
 varDecl ::= "var" IDENTIFIER ("=" expression )? ";"
 statement ::= printStmt | blockStmt | ifStmt | whileStmt |forStmt|exprStmt
 whileStmt ::= "while" "(" expression ")" statement

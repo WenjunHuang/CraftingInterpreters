@@ -6,6 +6,7 @@ trait StatementVisitor:
   def visitPrintStatement(statement: Statement.Print): Unit
   def visitBlockStatement(statement: Statement.Block): Unit
   def visitIfStatement(statement: Statement.If): Unit
-
   def visitWhileStatement(statement: Statement.While): Unit
+
+  def visitFunctionStatement(statement: Statement.Func): Unit
 end StatementVisitor

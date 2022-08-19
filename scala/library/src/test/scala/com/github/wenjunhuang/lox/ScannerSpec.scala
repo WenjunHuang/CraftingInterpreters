@@ -1,7 +1,7 @@
 package com.github.wenjunhuang.lox
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-class ScannerSpec extends AnyFlatSpec with Matchers {
+class ScannerSpec extends AnyFlatSpec with Matchers:
   "A Scanner" should "insert eof token at the end" in {
     val source = ""
     val scanner = new Scanner(source)
@@ -51,7 +51,7 @@ class ScannerSpec extends AnyFlatSpec with Matchers {
       "!=" -> TokenType.BANG_EQUAL,
       "(" -> TokenType.LEFT_PAREN,
       ")" -> TokenType.RIGHT_PAREN,
-      ","->TokenType.COMMA,
+      "," -> TokenType.COMMA,
       "{" -> TokenType.LEFT_BRACE,
       "}" -> TokenType.RIGHT_BRACE
     )
@@ -60,9 +60,20 @@ class ScannerSpec extends AnyFlatSpec with Matchers {
     val tokens = scanner.scanTokens()
     tokens.size should be(tokenSource.size + 1)
 
-    tokenSource.zipWithIndex.foreach { case ((source, tokenType),index) =>
+    tokenSource.zipWithIndex.foreach { case ((source, tokenType), index) =>
       tokens(index) should be(Token(tokenType, source, Value.NoValue, 1))
     }
   }
 
-}
+  it should "scan function call" in {
+    val source = """
+                   |myFunction(1, 2, 3);
+                   |otherFunction(a,b);
+                   |""".stripMargin
+    val scanner = new Scanner(source)
+    val tokens = scanner.scanTokens()
+    tokens.size should be(17)
+  }
+end ScannerSpec
+
+

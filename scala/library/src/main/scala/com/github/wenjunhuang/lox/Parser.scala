@@ -23,11 +23,29 @@ class Parser(private val tokens: Vector[Token]):
   private def declaration(): Option[Statement] =
     try
       if matching(TokenType.VAR) then Some(varDeclaration())
+      else if matching(TokenType.FUN) then Some(function(FunKind.Function))
       else Some(statement())
     catch
       case error: ParseError =>
         synchronize()
         None
+
+  private def function(kind: FunKind): Statement =
+    val name = consume(TokenType.IDENTIFIER, s"Expect $kind name.")
+    consume(TokenType.LEFT_PAREN, s"Expect '(' after $kind name.")
+
+    val parameters = mutable.Buffer[Token]()
+    if !check(TokenType.RIGHT_PAREN) then
+      while !check(TokenType.RIGHT_PAREN) do
+        if parameters.size >= 255 then error(peek, "Can't have more than 255 parameters.")
+        parameters += consume(TokenType.IDENTIFIER, s"Expect parameter name.")
+        if !check(TokenType.RIGHT_PAREN) then consume(TokenType.COMMA, s"Expect ',' after parameter name.")
+
+    consume(TokenType.RIGHT_PAREN, s"Expect ')' after parameters.")
+    consume(TokenType.LEFT_BRACE, s"Expect '{' before $kind body.")
+    val body = block()
+
+    Statement.Func(name, parameters.toVector, Statement.Block(body))
 
   private def varDeclaration(): Statement =
     val name = consume(TokenType.IDENTIFIER, "Expect variable name.")
@@ -196,7 +214,6 @@ class Parser(private val tokens: Vector[Token]):
       .takeWhile(_ => matching(TokenType.LEFT_PAREN))
       .foldLeft(expr) { (accum, _) =>
         val arguments = mutable.Buffer[Expression]()
-        consume(TokenType.LEFT_PAREN, "Expect '(' after function name.")
 
         if !check(TokenType.RIGHT_PAREN) then
           while !check(TokenType.RIGHT_PAREN) do
