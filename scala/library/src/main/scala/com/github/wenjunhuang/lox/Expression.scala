@@ -6,6 +6,7 @@ enum Expression:
   case Unary(operator: Token, right: Expression)
   case Assign(name: Token, value: Expression)
   case Binary(left: Expression, operator: Token, right: Expression)
+  case Call(callee: Expression, paren: Token, arguments: Vector[Expression])
   case Grouping(expression: Expression)
   case Variable(name: Token)
 

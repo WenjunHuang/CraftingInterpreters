@@ -15,7 +15,7 @@ lazy val interpreter =
     .settings(
       version := "0.0.1-SNAPSHOT",
       libraryDependencies ++=
-        Seq("org.scalatest" %% "scalatest" % "3.2.13" % Test)
+        Seq("org.jline" % "jline-reader" % "3.21.0", "org.scalatest" %% "scalatest" % "3.2.13" % Test)
     )
     .dependsOn(library)
 

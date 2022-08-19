@@ -133,4 +133,16 @@ class Interpreter extends ExprVisitor with StatementVisitor:
   override def visitWhileStatement(statement: Statement.While): Unit =
     while isTruthy(evaluate(statement.condition)) do execute(statement.body)
 
+  override def visitCall(expr: Expression.Call): Value =
+    val callee = evaluate(expr.callee)
+    val arguments = expr.arguments.map(evaluate)
+
+//    callee match
+//      case Value.CallableValue(arguments,body) =>
+//        val arguments = expr.arguments.map(evaluate)
+//        val environment = Environment(this.environment)
+//        for (i <- 0 until arguments.length) environment.define(arguments(i).name, arguments(i))
+//        executeBlock(body, environment)
+//        NoValue
+    NoValue
 end Interpreter

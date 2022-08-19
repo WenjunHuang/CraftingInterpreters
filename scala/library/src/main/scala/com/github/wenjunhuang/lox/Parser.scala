@@ -187,7 +187,28 @@ class Parser(private val tokens: Vector[Token]):
       val operator = previous
       val right = unary()
       Expression.Unary(operator, right)
-    else primary()
+    else call()
+
+  private def call(): Expression =
+    val expr = primary()
+    LazyList
+      .continually(())
+      .takeWhile(_ => matching(TokenType.LEFT_PAREN))
+      .foldLeft(expr) { (accum, _) =>
+        val arguments = mutable.Buffer[Expression]()
+        consume(TokenType.LEFT_PAREN, "Expect '(' after function name.")
+
+        if !check(TokenType.RIGHT_PAREN) then
+          while !check(TokenType.RIGHT_PAREN) do
+            arguments += expression()
+            if !check(TokenType.RIGHT_PAREN) then consume(TokenType.COMMA, "Expect ',' after value.")
+
+        val paren = consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.")
+
+        if arguments.length >= 255 then error(peek, "Can't have move than 255 arguments.")
+
+        Expression.Call(accum, paren, arguments.toVector)
+      }
 
   private def primary(): Expression =
     if matching(FALSE) then Expression.Literal(BooleanValue(false))

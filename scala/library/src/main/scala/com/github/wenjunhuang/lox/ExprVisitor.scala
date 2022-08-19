@@ -10,4 +10,6 @@ trait ExprVisitor:
   def visitGroupExpr(expr: Grouping): Value
   def visitVariable(expr: Variable): Value
   def visitLogical(expr: Logical): Value
+
+  def visitCall(expr: Call): Value
 end ExprVisitor

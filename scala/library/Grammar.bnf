@@ -30,7 +30,9 @@ equalityExpr ::= comparisonExpr (('!=' | '==') comparisonExpr)*
 comparisonExpr ::= termExpr (('>'|'>='|'<'|'<=') termExpr)*
 termExpr ::= factorExpr (( '-'|'+') factorExpr)*
 factorExpr ::= unaryExpr (('/'|'*') unaryExpr)*
-unaryExpr ::= ('!'|'-') unaryExpr | primaryExpr
+unaryExpr ::= ('!'|'-') unaryExpr | callExpr
+callExpr ::= primaryExpr ("(" arguments? ")")*
+arguments ::= expression ("," expression)*
 primaryExpr ::= NUMBER | STRING | 'true' | 'false' | 'nil' | '(' expression ')' | IDENTIFIER
 
 
