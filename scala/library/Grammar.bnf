@@ -17,7 +17,8 @@ funDecl ::= "fun" function
 function ::= IDENTIFIER "(" parameters? ")" blockStmt
 parameters ::= IDENTIFIER ("," IDENTIFIER)*
 varDecl ::= "var" IDENTIFIER ("=" expression )? ";"
-statement ::= printStmt | blockStmt | ifStmt | whileStmt |forStmt|exprStmt
+statement ::= printStmt | blockStmt | ifStmt | whileStmt |forStmt|returnStmt|exprStmt
+returnStmt ::= "return" expression? ";"
 whileStmt ::= "while" "(" expression ")" statement
 printStmt ::= "print" expression ";"
 blockStmt ::= "{" declaration * "}"

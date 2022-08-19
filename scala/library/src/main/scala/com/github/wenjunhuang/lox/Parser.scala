@@ -62,8 +62,15 @@ class Parser(private val tokens: Vector[Token]):
     else if matching(TokenType.IF) then ifStatement()
     else if matching(TokenType.WHILE) then whileStatement()
     else if matching(TokenType.FOR) then forStatement()
+    else if matching(TokenType.RETURN) then returnStatement()
     else if matching(TokenType.LEFT_BRACE) then Statement.Block(block())
     else expressionStatement()
+
+  private def returnStatement(): Statement =
+    val keyword = previous
+    val value = if !check(TokenType.SEMICOLON) then Some(expression()) else None
+    consume(TokenType.SEMICOLON, "Expect ';' after return value.")
+    Statement.Return(keyword, value)
 
   private def forStatement(): Statement =
     consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.")

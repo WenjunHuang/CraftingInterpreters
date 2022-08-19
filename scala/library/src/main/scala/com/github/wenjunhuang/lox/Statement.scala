@@ -3,6 +3,7 @@ package com.github.wenjunhuang.lox
 enum Statement:
   case Expr(expression: Expression)
   case Print(expression: Expression)
+  case Return(keyword: Token, expression: Option[Expression])
   case If(condition: Expression, thenBranch: Statement, elseBranch: Option[Statement])
   case Var(name: Token, initializer: Option[Expression])
   case While(condition: Expression, body: Statement)
@@ -17,5 +18,6 @@ enum Statement:
     case ifStmt: If       => visitor.visitIfStatement(ifStmt)
     case whileStmt: While => visitor.visitWhileStatement(whileStmt)
     case func: Func       => visitor.visitFunctionStatement(func)
+    case rtn: Return      => visitor.visitReturnStatement(rtn)
 
 end Statement

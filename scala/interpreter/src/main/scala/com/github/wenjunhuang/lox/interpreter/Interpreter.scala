@@ -166,4 +166,6 @@ class Interpreter extends ExprVisitor with StatementVisitor:
         }
       )
     )
+
+  override def visitReturnStatement(statement: Statement.Return): Unit = ???
 end Interpreter

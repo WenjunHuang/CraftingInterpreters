@@ -74,6 +74,13 @@ class ScannerSpec extends AnyFlatSpec with Matchers:
     val tokens = scanner.scanTokens()
     tokens.size should be(17)
   }
+
+  it should "scan return statement" in {
+    val source = """
+                   |return 10;
+                   |""".stripMargin
+    val scanner = new Scanner(source)
+    val tokens = scanner.scanTokens()
+    tokens.size should be(4)
+  }
 end ScannerSpec
-
-

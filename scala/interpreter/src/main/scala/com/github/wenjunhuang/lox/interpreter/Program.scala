@@ -7,11 +7,19 @@ import scala.collection.mutable
 import scala.io.StdIn
 object Program:
   def main(args: Array[String]): Unit =
+//    val source = """
+//                   |fun sayHi(first, last){
+//                   |print "Hi, " + first + " " + last + "!";
+//                   |}
+//                   |sayHi("Dear","Reader");
+//                   |""".stripMargin
     val source = """
-                   |fun sayHi(first, last){
-                   |print "Hi, " + first + " " + last + "!";
+                   |var counter = 3;
+                   |fun countDown(n) {
+                   |if (n > 1) countDown(n - 1);
+                   |print n;
                    |}
-                   |sayHi("Dear","Reader");
+                   |countDown(counter);
                    |""".stripMargin
     val interpreter = new Interpreter()
     runSource(interpreter, source)
