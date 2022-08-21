@@ -168,7 +168,7 @@ type Scanner(source: string) as this =
         | c when isAlpha (c) -> identifier ()
         | _ -> Lox.errorAt line "Unexpected character."
 
-    member private this.addToken(tokenType: TokenType, ?literal: Value) =
+    member private this.addToken (tokenType: TokenType, ?literal: Value) =
         tokens.Add
             { tokenType = tokenType
               lexeme = source.Substring(start, current - start)
@@ -176,7 +176,7 @@ type Scanner(source: string) as this =
               line = line }
 
 
-    member this.scanTokens() : Token array =
+    member this.scanTokens () : Token array =
         while not (isAtEnd ()) do
             start <- current
             scanToken ()
