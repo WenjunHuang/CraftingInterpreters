@@ -144,6 +144,8 @@ struct ScannerInner {
               advance();
             }
           }
+        } else {
+          addToken(TokenType::SLASH);
         }
         break;
       case u' ':
