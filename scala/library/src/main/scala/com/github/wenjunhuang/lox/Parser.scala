@@ -60,6 +60,7 @@ class Parser(private val tokens: Vector[Token]):
   private def statement(): Statement =
     if matching(TokenType.PRINT) then printStatement()
     else if matching(TokenType.IF) then ifStatement()
+    else if matching(TokenType.RETURN) then returnStatement()
     else if matching(TokenType.WHILE) then whileStatement()
     else if matching(TokenType.FOR) then forStatement()
     else if matching(TokenType.RETURN) then returnStatement()
@@ -67,8 +68,10 @@ class Parser(private val tokens: Vector[Token]):
     else expressionStatement()
 
   private def returnStatement(): Statement =
-    val keyword = previous
-    val value = if !check(TokenType.SEMICOLON) then Some(expression()) else None
+    inline def keyword = previous
+    inline def endWithSemicolon = !check(TokenType.SEMICOLON)
+
+    val value = if endWithSemicolon then Some(expression()) else None
     consume(TokenType.SEMICOLON, "Expect ';' after return value.")
     Statement.Return(keyword, value)
 
