@@ -161,11 +161,20 @@ class Interpreter extends ExprVisitor with StatementVisitor:
         { params =>
           val funEnvironment = Environment(currentEnvironment)
           statement.params.zip(params).foreach { case (param, value) => funEnvironment.define(param.lexeme, value) }
-          executeBlock(statement.body.statements, funEnvironment)
-          NoValue
+          try
+            executeBlock(statement.body.statements, funEnvironment)
+            NoValue
+          catch
+            case returnValue: Return =>
+              returnValue.value
         }
       )
     )
 
-  override def visitReturnStatement(statement: Statement.Return): Unit = ???
+  override def visitReturnStatement(statement: Statement.Return): Unit =
+    val value = statement.expression match
+      case Some(v) => evaluate(v)
+      case None    => NoValue
+    throw Return(value)
+
 end Interpreter

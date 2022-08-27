@@ -13,13 +13,29 @@ object Program:
 //                   |}
 //                   |sayHi("Dear","Reader");
 //                   |""".stripMargin
+//    val source = """
+//                   |fun fib(n){
+//                   |if (n <= 1) return n;
+//                   |return fib(n - 1) + fib(n - 2);
+//                   |}
+//                   |for (var i = 0 ;i< 20;i = i+1){
+//                   |print fib(i);
+//                   |}
+//                   |""".stripMargin
     val source = """
-                   |var counter = 3;
-                   |fun countDown(n) {
-                   |if (n > 1) countDown(n - 1);
-                   |print n;
+                   |fun makeCounter(){
+                   |var i = 0;
+                   |fun count(){
+                   |i = i + 1;
+                   |print i;
                    |}
-                   |countDown(counter);
+                   |return count;
+                   |}
+                   |
+                   |var counter = makeCounter();
+                   |counter();
+                   |counter();
+                   |
                    |""".stripMargin
     val interpreter = new Interpreter()
     runSource(interpreter, source)

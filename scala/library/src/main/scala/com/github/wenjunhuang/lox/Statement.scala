@@ -10,7 +10,7 @@ enum Statement:
   case Block(statements: Vector[Statement])
   case Func(name: Token, params: Vector[Token], body: Block)
 
-  def accept(visitor: StatementVisitor) = this match
+  def accept(visitor: StatementVisitor): Unit = this match
     case v: Var           => visitor.visitVarStatement(v)
     case expr: Expr       => visitor.visitExpressionStatement(expr)
     case print: Print     => visitor.visitPrintStatement(print)

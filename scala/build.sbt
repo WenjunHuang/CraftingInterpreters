@@ -1,30 +1,46 @@
 ThisBuild / scalaVersion := "3.1.3"
+ThisBuild / version := "0.0.1-SNAPSHOT"
 lazy val library =
-  project
+  crossProject(JSPlatform, JVMPlatform)
+    .crossType(CrossType.Pure)
     .in(file("library"))
-    .settings(
-      version := "0.0.1-SNAPSHOT",
+    .settings()
+    .jvmSettings(
       libraryDependencies ++=
-        Seq("org.scalatest" %% "scalatest" % "3.2.13" % Test),
-      Compile / unmanagedSourceDirectories += baseDirectory.value / "gen"
+        Seq("org.scalatest" %% "scalatest" % "3.2.13" % Test)
     )
 
 lazy val interpreter =
   project
     .in(file("interpreter"))
     .settings(
-      version := "0.0.1-SNAPSHOT",
       libraryDependencies ++=
         Seq("org.jline" % "jline-reader" % "3.21.0", "org.scalatest" %% "scalatest" % "3.2.13" % Test)
     )
-    .dependsOn(library)
+    .dependsOn(library.jvm)
+
+lazy val webUI = project
+  .in(file("webUI"))
+  .settings(
+    scalaJSUseMainModuleInitializer := true,
+    libraryDependencies ++=
+      Seq(
+        "org.scala-js" %%% "scalajs-dom" % "2.2.0",
+        "com.github.japgolly.scalajs-react" %%% "core" % "2.1.1",
+        "com.github.japgolly.scalajs-react" %%% "extra" % "2.1.1",
+        "com.github.japgolly.scalacss" %%% "core" % "1.0.0",
+        "com.github.japgolly.scalacss" %%% "ext-react" % "1.0.0",
+        "org.scalatest" %% "scalatest" % "3.2.13" % Test
+      )
+  )
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(library.js)
 
 lazy val ideaPlugin =
   project
     .in(file("ideaPlugin"))
     .enablePlugins(SbtIdeaPlugin)
     .settings(
-      version := "0.0.1-SNAPSHOT",
       ThisBuild / intellijPluginName := "CraftingInterpreters",
       ThisBuild / intellijBuild := "213.6777.52",
       ThisBuild / intellijPlatform := IntelliJPlatform.IdeaCommunity,
@@ -42,9 +58,4 @@ lazy val ideaPlugin =
           "org.typelevel" % "cats-effect_3" % "3.3.14",
           "org.scalatest" %% "scalatest" % "3.2.13" % Test
         )
-//      Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
-//      Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "java",
-//      Compile / unmanagedSourceDirectories += baseDirectory.value / "gen",
-//      Test / unmanagedResourceDirectories += baseDirectory.value / "testResources"
-      //      packageLibraryMappings += "org.typelevel" %% "cats*" % ".*" -> Some("lib/cats.jar"),
     )

@@ -26,7 +26,7 @@ class Parser(private val tokens: Vector[Token]):
       else if matching(TokenType.FUN) then Some(function(FunKind.Function))
       else Some(statement())
     catch
-      case error: ParseError =>
+      case _: ParseError =>
         synchronize()
         None
 
@@ -257,7 +257,7 @@ class Parser(private val tokens: Vector[Token]):
     Lox.error(token, message)
     new ParseError()
 
-  private def synchronize() =
+  private def synchronize(): Unit =
     advance()
     breakable {
       while !isAtEnd do
