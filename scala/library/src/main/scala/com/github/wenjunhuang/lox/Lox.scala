@@ -9,7 +9,6 @@ object Lox:
   var hasRuntimeError = false
   var hadError = false
 
-
   def error(token: Token, message: String): Unit =
     if token.tt == TokenType.EOF then report(token.line, "", message)
     else report(token.line, s" at '${token.lexeme}'", message)
