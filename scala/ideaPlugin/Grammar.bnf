@@ -1,7 +1,13 @@
 {
+psiPackage = "com.github.wenjunhuang.lox.ideaplugin.psi"
+psiImplPackage = "com.github.wenjunhuang.lox.ideaplugin.psi.impl"
+parserClass = "com.github.wenjunhuang.lox.ideaplugin.LoxParser"
+elementTypeHolderClass = "com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes"
+
 tokens=[
 SPACE='regexp:\s+'
-COMMENT='regexp://.*'
+LINE_COMMENT='regexp://.*'
+BLOCK_COMMENT = 'regexp:/\*(.|\n)*\*/'
 NUMBER='regexp:\d+(\.\d*)?'
 IDENTIFIER='regexp:\p{Alpha}\w*'
 STRING="regexp:('([^'\\]\\.)*'|\"([^\"\\]|\\.)*\")"

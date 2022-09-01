@@ -1,4 +1,18 @@
-ThisBuild / scalaVersion := "3.1.3"
+val versions = new {
+  val scalaVersion = "3.2.0-RC4"
+  val scalaTest = "3.2.13"
+  val monocle = "3.1.0"
+  val scalaJSDom = "2.2.0"
+  val scalaJSReact = "2.1.1"
+  val scalaCss = "1.0.0"
+  val react = "18.2.0"
+  val intelliJBuild = "213.6777.52"
+  val scalaSwing = "3.0.0"
+  val catsEffect = "3.3.14"
+  val jline = "3.21.0"
+}
+
+ThisBuild / scalaVersion := versions.scalaVersion
 ThisBuild / version := "0.0.1-SNAPSHOT"
 lazy val library =
   crossProject(JSPlatform, JVMPlatform)
@@ -6,7 +20,7 @@ lazy val library =
     .in(file("library"))
     .jvmSettings(
       libraryDependencies ++=
-        Seq("org.scalatest" %% "scalatest" % "3.2.13" % Test)
+        Seq("org.scalatest" %% "scalatest" % versions.scalaTest % Test)
     )
 
 lazy val interpreter =
@@ -14,7 +28,7 @@ lazy val interpreter =
     .in(file("interpreter"))
     .settings(
       libraryDependencies ++=
-        Seq("org.jline" % "jline-reader" % "3.21.0", "org.scalatest" %% "scalatest" % "3.2.13" % Test)
+        Seq("org.jline" % "jline-reader" % versions.jline, "org.scalatest" %% "scalatest" % versions.scalaTest % Test)
     )
     .dependsOn(library.jvm)
 
@@ -29,24 +43,24 @@ lazy val webUI = project
       (Compile / fastOptJS / artifactPath).value.getParentFile.getAbsolutePath
     ),
     webpackDevServerPort := 3000,
-    webpackResources := webpackResources.value +++ ((Compile / resourceDirectory).value * ("*.scss"||"*.html")),
+    webpackResources := webpackResources.value +++ ((Compile / resourceDirectory).value * ("*.scss" || "*.html")),
     webpack / version := "5.74.0",
     startWebpackDevServer / version := "4.10.0",
-    webpackMonitoredFiles / includeFilter := "**/*.{js,css,html}",
     webpackCliVersion := "4.10.0",
+    webpackMonitoredFiles / includeFilter := "**/*.{js,css,html}",
     libraryDependencies ++=
       Seq(
-        "dev.optics" %%% "monocle-core" % "3.1.0",
-        "dev.optics" %%% "monocle-macro" % "3.1.0",
-        "org.scala-js" %%% "scalajs-dom" % "2.2.0",
-        "com.github.japgolly.scalajs-react" %%% "core" % "2.1.1",
-        "com.github.japgolly.scalajs-react" %%% "extra" % "2.1.1",
-        "com.github.japgolly.scalacss" %%% "core" % "1.0.0",
-        "com.github.japgolly.scalacss" %%% "ext-react" % "1.0.0"
+        "dev.optics" %%% "monocle-core" % versions.monocle,
+        "dev.optics" %%% "monocle-macro" % versions.monocle,
+        "org.scala-js" %%% "scalajs-dom" % versions.scalaJSDom,
+        "com.github.japgolly.scalajs-react" %%% "core" % versions.scalaJSReact,
+        "com.github.japgolly.scalajs-react" %%% "extra" % versions.scalaJSReact,
+        "com.github.japgolly.scalacss" %%% "core" % versions.scalaCss,
+        "com.github.japgolly.scalacss" %%% "ext-react" % versions.scalaCss
       ),
     Compile / npmDependencies ++= Seq(
-      "react" -> "18.2.0",
-      "react-dom" -> "18.2.0"
+      "react" -> versions.react,
+      "react-dom" -> versions.react
     ),
     Compile / npmDevDependencies ++= Seq(
       "webpack-merge" -> "5.8.0",
@@ -64,21 +78,22 @@ lazy val ideaPlugin =
     .in(file("ideaPlugin"))
     .enablePlugins(SbtIdeaPlugin)
     .settings(
-      ThisBuild / intellijPluginName := "CraftingInterpreters",
-      ThisBuild / intellijBuild := "213.6777.52",
+      intellijPluginName := "CraftingInterpreters",
+      ThisBuild / intellijBuild := versions.intelliJBuild,
       ThisBuild / intellijPlatform := IntelliJPlatform.IdeaCommunity,
-      Global / intellijAttachSources := true,
+      packageMethod := PackagingMethod.Standalone(),
+      intellijAttachSources := true,
       Compile / javacOptions ++= "--release" :: "11" :: Nil,
       intellijPlugins ++= Seq(
         "org.intellij.intelliLang".toPlugin,
         "com.intellij.platform.images".toPlugin
       ),
+      Compile / managedSourceDirectories ++= (baseDirectory.value / "gen") :: Nil,
       libraryDependencies ++=
         Seq(
-          ("com.eclipsesource.minimal-json" % "minimal-json" % "0.9.5").withSources(),
-          "org.scala-lang.modules" % "scala-swing_3" % "3.0.0", // "2.1.1" ,
-          "org.scala-lang" % "scala3-library_3" % "3.1.3",
-          "org.typelevel" % "cats-effect_3" % "3.3.14",
-          "org.scalatest" %% "scalatest" % "3.2.13" % Test
+          "org.scala-lang.modules" % "scala-swing_3" % versions.scalaSwing,
+          "org.scala-lang" % "scala3-library_3" % versions.scalaVersion,
+          "org.typelevel" % "cats-effect_3" % versions.catsEffect,
+          "org.scalatest" %% "scalatest" % versions.scalaTest % Test
         )
     )

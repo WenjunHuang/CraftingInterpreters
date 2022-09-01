@@ -86,7 +86,7 @@ class Scanner(private val source: String):
 
     addToken(
       NUMBER,
-      source.substring(start, current).toDoubleOption.map(Value.NumericValue).getOrElse {
+      source.substring(start, current).toDoubleOption.map(Value.NumericValue.apply).getOrElse {
         Lox.error(line, "Invalid number.")
         NoValue
       }
