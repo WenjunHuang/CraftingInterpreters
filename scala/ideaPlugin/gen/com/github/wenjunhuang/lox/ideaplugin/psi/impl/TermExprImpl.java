@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes.*;
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.github.wenjunhuang.lox.ideaplugin.psi.*;
 
-public class TermExprImpl extends ExpressionImpl implements TermExpr {
+public class TermExprImpl extends ASTWrapperPsiElement implements TermExpr {
 
   public TermExprImpl(@NotNull ASTNode node) {
     super(node);
   }
 
-  @Override
   public void accept(@NotNull Visitor visitor) {
     visitor.visitTermExpr(this);
   }
@@ -29,8 +29,8 @@ public class TermExprImpl extends ExpressionImpl implements TermExpr {
 
   @Override
   @NotNull
-  public List<Expression> getExpressionList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expression.class);
+  public List<FactorExpr> getFactorExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, FactorExpr.class);
   }
 
 }

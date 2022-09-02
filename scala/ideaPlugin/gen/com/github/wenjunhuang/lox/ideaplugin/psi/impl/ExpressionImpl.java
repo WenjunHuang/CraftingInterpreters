@@ -11,7 +11,7 @@ import static com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.github.wenjunhuang.lox.ideaplugin.psi.*;
 
-public abstract class ExpressionImpl extends ASTWrapperPsiElement implements Expression {
+public class ExpressionImpl extends ASTWrapperPsiElement implements Expression {
 
   public ExpressionImpl(@NotNull ASTNode node) {
     super(node);
@@ -25,6 +25,12 @@ public abstract class ExpressionImpl extends ASTWrapperPsiElement implements Exp
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof Visitor) accept((Visitor)visitor);
     else super.accept(visitor);
+  }
+
+  @Override
+  @NotNull
+  public AssignmentExpr getAssignmentExpr() {
+    return findNotNullChildByClass(AssignmentExpr.class);
   }
 
 }

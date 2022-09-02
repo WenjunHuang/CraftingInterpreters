@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes.*;
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.github.wenjunhuang.lox.ideaplugin.psi.*;
 
-public class CallExprImpl extends ExpressionImpl implements CallExpr {
+public class CallExprImpl extends ASTWrapperPsiElement implements CallExpr {
 
   public CallExprImpl(@NotNull ASTNode node) {
     super(node);
   }
 
-  @Override
   public void accept(@NotNull Visitor visitor) {
     visitor.visitCallExpr(this);
   }

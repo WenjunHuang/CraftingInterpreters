@@ -1,14 +1,16 @@
 <idea-plugin>
     <id>com.github.wenjunhuang.lox</id>
-    <name>Lox Language Playground</name>
+    <name>Lox Language</name>
     <vendor>WenjunHuang</vendor>
 
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <fileType name="Lox File" implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxFileType$"
-                  fieldName="MODULE$" language="Lox" extensions="lox"/>
-        <lang.parserDefinition language="Lox" implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxParser"/>
+        <fileType name="Lox File" implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxFileType$" fieldName="MODULE$" language="Lox" extensions="lox"/>
+        <lang.parserDefinition language="Lox"
+                               implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxParserDefinition"/>
+<!--        <lang.psiStructureViewFactory language="Lox"-->
+<!--                                      implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxStructureViewFactory"/>-->
 
     </extensions>
 

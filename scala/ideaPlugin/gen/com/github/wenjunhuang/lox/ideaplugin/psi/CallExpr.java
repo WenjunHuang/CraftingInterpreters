@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface CallExpr extends Expression {
+public interface CallExpr extends PsiElement {
 
   @NotNull
   List<Arguments> getArgumentsList();

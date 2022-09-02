@@ -34,11 +34,11 @@ public interface LoxElementTypes {
   IElementType VAR_DECL = new IElementType("VAR_DECL", null);
   IElementType WHILE_STMT = new IElementType("WHILE_STMT", null);
 
-  IElementType BLOCK_COMMENT = new IElementType("BLOCK_COMMENT", null);
-  IElementType IDENTIFIER = new IElementType("IDENTIFIER", null);
-  IElementType LINE_COMMENT = new IElementType("LINE_COMMENT", null);
-  IElementType NUMBER = new IElementType("NUMBER", null);
-  IElementType STRING = new IElementType("STRING", null);
+  IElementType BLOCK_COMMENT = new LoxTokenType("BLOCK_COMMENT");
+  IElementType IDENTIFIER = new LoxTokenType("IDENTIFIER");
+  IElementType LINE_COMMENT = new LoxTokenType("LINE_COMMENT");
+  IElementType NUMBER = new LoxTokenType("NUMBER");
+  IElementType STRING = new LoxTokenType("STRING");
 
   class Factory {
     public static PsiElement createElement(ASTNode node) {
@@ -63,6 +63,9 @@ public interface LoxElementTypes {
       }
       else if (type == EQUALITY_EXPR) {
         return new EqualityExprImpl(node);
+      }
+      else if (type == EXPRESSION) {
+        return new ExpressionImpl(node);
       }
       else if (type == EXPR_STMT) {
         return new ExprStmtImpl(node);
@@ -99,6 +102,9 @@ public interface LoxElementTypes {
       }
       else if (type == RETURN_STMT) {
         return new ReturnStmtImpl(node);
+      }
+      else if (type == STATEMENT) {
+        return new StatementImpl(node);
       }
       else if (type == TERM_EXPR) {
         return new TermExprImpl(node);

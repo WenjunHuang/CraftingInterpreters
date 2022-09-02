@@ -6,14 +6,14 @@ val versions = new {
   val scalaJSReact = "2.1.1"
   val scalaCss = "1.0.0"
   val react = "18.2.0"
-  val intelliJBuild = "213.6777.52"
+  val intelliJBuild = "222.3739.54"
+
   val scalaSwing = "3.0.0"
   val catsEffect = "3.3.14"
   val jline = "3.21.0"
 }
 
 ThisBuild / scalaVersion := versions.scalaVersion
-ThisBuild / version := "0.0.1-SNAPSHOT"
 lazy val library =
   crossProject(JSPlatform, JVMPlatform)
     .crossType(CrossType.Pure)
@@ -42,7 +42,7 @@ lazy val webUI = project
       "--static-directory",
       (Compile / fastOptJS / artifactPath).value.getParentFile.getAbsolutePath
     ),
-    webpackDevServerPort := 3000,
+    webpack / webpackDevServerPort := 3000,
     webpackResources := webpackResources.value +++ ((Compile / resourceDirectory).value * ("*.scss" || "*.html")),
     webpack / version := "5.74.0",
     startWebpackDevServer / version := "4.10.0",
@@ -78,7 +78,7 @@ lazy val ideaPlugin =
     .in(file("ideaPlugin"))
     .enablePlugins(SbtIdeaPlugin)
     .settings(
-      intellijPluginName := "CraftingInterpreters",
+      ThisBuild / intellijPluginName := "CraftingInterpreters",
       ThisBuild / intellijBuild := versions.intelliJBuild,
       ThisBuild / intellijPlatform := IntelliJPlatform.IdeaCommunity,
       packageMethod := PackagingMethod.Standalone(),
@@ -91,9 +91,9 @@ lazy val ideaPlugin =
       Compile / managedSourceDirectories ++= (baseDirectory.value / "gen") :: Nil,
       libraryDependencies ++=
         Seq(
-          "org.scala-lang.modules" % "scala-swing_3" % versions.scalaSwing,
-          "org.scala-lang" % "scala3-library_3" % versions.scalaVersion,
-          "org.typelevel" % "cats-effect_3" % versions.catsEffect,
+          "org.scala-lang.modules" %% "scala-swing" % versions.scalaSwing,
+          "org.scala-lang" %% "scala3-library" % versions.scalaVersion,
+          "org.typelevel" %% "cats-effect" % versions.catsEffect,
           "org.scalatest" %% "scalatest" % versions.scalaTest % Test
         )
     )

@@ -5,9 +5,9 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface EqualityExpr extends Expression {
+public interface EqualityExpr extends PsiElement {
 
   @NotNull
-  List<Expression> getExpressionList();
+  List<ComparisonExpr> getComparisonExprList();
 
 }

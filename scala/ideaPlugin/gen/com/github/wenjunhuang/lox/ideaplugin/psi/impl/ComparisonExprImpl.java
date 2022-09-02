@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes.*;
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.github.wenjunhuang.lox.ideaplugin.psi.*;
 
-public class ComparisonExprImpl extends ExpressionImpl implements ComparisonExpr {
+public class ComparisonExprImpl extends ASTWrapperPsiElement implements ComparisonExpr {
 
   public ComparisonExprImpl(@NotNull ASTNode node) {
     super(node);
   }
 
-  @Override
   public void accept(@NotNull Visitor visitor) {
     visitor.visitComparisonExpr(this);
   }
@@ -29,8 +29,8 @@ public class ComparisonExprImpl extends ExpressionImpl implements ComparisonExpr
 
   @Override
   @NotNull
-  public List<Expression> getExpressionList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expression.class);
+  public List<TermExpr> getTermExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, TermExpr.class);
   }
 
 }

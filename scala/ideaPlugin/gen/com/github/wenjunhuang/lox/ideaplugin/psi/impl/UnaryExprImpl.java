@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes.*;
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.github.wenjunhuang.lox.ideaplugin.psi.*;
 
-public class UnaryExprImpl extends ExpressionImpl implements UnaryExpr {
+public class UnaryExprImpl extends ASTWrapperPsiElement implements UnaryExpr {
 
   public UnaryExprImpl(@NotNull ASTNode node) {
     super(node);
   }
 
-  @Override
   public void accept(@NotNull Visitor visitor) {
     visitor.visitUnaryExpr(this);
   }
@@ -29,8 +29,14 @@ public class UnaryExprImpl extends ExpressionImpl implements UnaryExpr {
 
   @Override
   @Nullable
-  public Expression getExpression() {
-    return findChildByClass(Expression.class);
+  public CallExpr getCallExpr() {
+    return findChildByClass(CallExpr.class);
+  }
+
+  @Override
+  @Nullable
+  public UnaryExpr getUnaryExpr() {
+    return findChildByClass(UnaryExpr.class);
   }
 
 }

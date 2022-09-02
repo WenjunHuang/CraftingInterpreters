@@ -2,10 +2,10 @@
 psiPackage = "com.github.wenjunhuang.lox.ideaplugin.psi"
 psiImplPackage = "com.github.wenjunhuang.lox.ideaplugin.psi.impl"
 parserClass = "com.github.wenjunhuang.lox.ideaplugin.LoxParser"
+parserUtilClass="com.github.wenjunhuang.lox.ideaplugin.LoxParserUtil"
 elementTypeHolderClass = "com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes"
-
+tokenTypeClass="com.github.wenjunhuang.lox.ideaplugin.LoxTokenType"
 tokens=[
-SPACE='regexp:\s+'
 LINE_COMMENT='regexp://.*'
 BLOCK_COMMENT = 'regexp:/\*(.|\n)*\*/'
 NUMBER='regexp:\d+(\.\d*)?'
@@ -13,11 +13,11 @@ IDENTIFIER='regexp:\p{Alpha}\w*'
 STRING="regexp:('([^'\\]\\.)*'|\"([^\"\\]|\\.)*\")"
 ]
 
-extends(".*Expr") = expression
-extends(".*Stmt") = statement
+//extends(".*Expr") = expression
+//extends(".*Stmt") = statement
 }
 
-program ::= declaration * <<eof>>
+program ::= declaration *
 declaration ::= funDecl | varDecl | statement
 funDecl ::= "fun" function
 function ::= IDENTIFIER "(" parameters? ")" blockStmt

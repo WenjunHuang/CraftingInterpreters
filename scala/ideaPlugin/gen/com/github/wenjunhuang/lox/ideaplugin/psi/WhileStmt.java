@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface WhileStmt extends Statement {
+public interface WhileStmt extends PsiElement {
 
   @NotNull
   Expression getExpression();

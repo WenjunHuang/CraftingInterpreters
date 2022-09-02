@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface BlockStmt extends Statement {
+public interface BlockStmt extends PsiElement {
 
   @NotNull
   List<Declaration> getDeclarationList();

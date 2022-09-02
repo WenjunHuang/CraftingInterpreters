@@ -7,4 +7,25 @@ import com.intellij.psi.PsiElement;
 
 public interface Statement extends PsiElement {
 
+  @Nullable
+  BlockStmt getBlockStmt();
+
+  @Nullable
+  ExprStmt getExprStmt();
+
+  @Nullable
+  ForStmt getForStmt();
+
+  @Nullable
+  IfStmt getIfStmt();
+
+  @Nullable
+  PrintStmt getPrintStmt();
+
+  @Nullable
+  ReturnStmt getReturnStmt();
+
+  @Nullable
+  WhileStmt getWhileStmt();
+
 }
