@@ -14,6 +14,7 @@ val versions = new {
 }
 
 ThisBuild / scalaVersion := versions.scalaVersion
+
 lazy val library =
   crossProject(JSPlatform, JVMPlatform)
     .crossType(CrossType.Pure)
@@ -73,27 +74,33 @@ lazy val webUI = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(library.js)
 
+ThisBuild / packageMethod := PackagingMethod.Skip()
+ThisBuild / intellijPluginName := "CraftingInterpreters"
+ThisBuild / intellijBuild := versions.intelliJBuild
+ThisBuild / intellijPlatform := IntelliJPlatform.IdeaCommunity
+
 lazy val ideaPlugin =
   project
     .in(file("ideaPlugin"))
     .enablePlugins(SbtIdeaPlugin)
     .settings(
-      ThisBuild / intellijPluginName := "CraftingInterpreters",
-      ThisBuild / intellijBuild := versions.intelliJBuild,
-      ThisBuild / intellijPlatform := IntelliJPlatform.IdeaCommunity,
       packageMethod := PackagingMethod.Standalone(),
-      intellijAttachSources := true,
+      Global / intellijAttachSources := true,
       Compile / javacOptions ++= "--release" :: "11" :: Nil,
       intellijPlugins ++= Seq(
         "org.intellij.intelliLang".toPlugin,
         "com.intellij.platform.images".toPlugin
       ),
-      Compile / managedSourceDirectories ++= (baseDirectory.value / "gen") :: Nil,
+      packageLibraryMappings := Seq.empty, // allow scala-library
+      Compile / unmanagedSourceDirectories += (baseDirectory.value / "gen"),
       libraryDependencies ++=
         Seq(
-          "org.scala-lang.modules" %% "scala-swing" % versions.scalaSwing,
-          "org.scala-lang" %% "scala3-library" % versions.scalaVersion,
-          "org.typelevel" %% "cats-effect" % versions.catsEffect,
+          "org.scala-lang.modules" % "scala-swing_3" % versions.scalaSwing,
+          "org.scala-lang" % "scala3-library_3" % versions.scalaVersion,
+//          "org.scala-lang" % "scala-library" % "2.13.8",
+          "org.typelevel" % "cats-effect_3" % versions.catsEffect,
           "org.scalatest" %% "scalatest" % versions.scalaTest % Test
-        )
+        ),
+      library.jvm / packageMethod := PackagingMethod.MergeIntoParent()
     )
+    .dependsOn(library.jvm)

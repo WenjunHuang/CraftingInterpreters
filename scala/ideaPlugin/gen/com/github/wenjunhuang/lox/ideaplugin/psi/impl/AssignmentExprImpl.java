@@ -7,16 +7,16 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
-import static com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import static com.github.wenjunhuang.lox.ideaplugin.LoxTypes.*;
 import com.github.wenjunhuang.lox.ideaplugin.psi.*;
 
-public class AssignmentExprImpl extends ASTWrapperPsiElement implements AssignmentExpr {
+public class AssignmentExprImpl extends ExpressionImpl implements AssignmentExpr {
 
   public AssignmentExprImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull Visitor visitor) {
     visitor.visitAssignmentExpr(this);
   }
@@ -29,14 +29,8 @@ public class AssignmentExprImpl extends ASTWrapperPsiElement implements Assignme
 
   @Override
   @Nullable
-  public AssignmentExpr getAssignmentExpr() {
-    return findChildByClass(AssignmentExpr.class);
-  }
-
-  @Override
-  @Nullable
-  public LogicOrExpr getLogicOrExpr() {
-    return findChildByClass(LogicOrExpr.class);
+  public Expression getExpression() {
+    return findChildByClass(Expression.class);
   }
 
   @Override

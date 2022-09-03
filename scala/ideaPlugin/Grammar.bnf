@@ -3,18 +3,58 @@ psiPackage = "com.github.wenjunhuang.lox.ideaplugin.psi"
 psiImplPackage = "com.github.wenjunhuang.lox.ideaplugin.psi.impl"
 parserClass = "com.github.wenjunhuang.lox.ideaplugin.LoxParser"
 parserUtilClass="com.github.wenjunhuang.lox.ideaplugin.LoxParserUtil"
-elementTypeHolderClass = "com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes"
+elementTypeHolderClass = "com.github.wenjunhuang.lox.ideaplugin.LoxTypes"
+elementTypeClass = "com.github.wenjunhuang.lox.ideaplugin.LoxElementType"
 tokenTypeClass="com.github.wenjunhuang.lox.ideaplugin.LoxTokenType"
+
 tokens=[
 LINE_COMMENT='regexp://.*'
 BLOCK_COMMENT = 'regexp:/\*(.|\n)*\*/'
 NUMBER='regexp:\d+(\.\d*)?'
 IDENTIFIER='regexp:\p{Alpha}\w*'
 STRING="regexp:('([^'\\]\\.)*'|\"([^\"\\]|\\.)*\")"
+SPACE='regexp:\s+'
+
+SEMICOLON = ';'
+FUN = 'fun'
+IF = 'if'
+ELSE = 'else'
+FOR = 'for'
+WHILE = 'while'
+EQUAL = '='
+EQUAL_EQUAL = '=='
+LEFT_PAREN = '('
+RIGHT_PAREN = ')'
+LEFT_BRACE = '{'
+RIGHT_BRACE = '}'
+COMMA = ','
+DOT = '.'
+MINUS = '-'
+PLUS = '+'
+SLASH = '/'
+STAR = '*'
+BANG = '!'
+BANG_EQUAL = '!='
+GREATER = '>'
+GREATER_EQUAL = '>='
+LESS = '<'
+LESS_EQUAL = '<='
+AND = 'and'
+OR = 'or'
+CLASS = 'class'
+TRUE = 'true'
+FALSE = 'false'
+NIL = 'nil'
+PRINT = 'print'
+RETURN = 'return'
+SUPER = 'super'
+THIS = 'this'
+VAR = 'var'
+
 ]
 
-//extends(".*Expr") = expression
-//extends(".*Stmt") = statement
+extends(".*Expr") = expression
+extends(".*Stmt") = statement
 }
 
 program ::= declaration *
@@ -44,5 +84,3 @@ unaryExpr ::= ('!'|'-') unaryExpr | callExpr
 callExpr ::= primaryExpr ("(" arguments? ")")*
 arguments ::= expression ("," expression)*
 primaryExpr ::= NUMBER | STRING | 'true' | 'false' | 'nil' | '(' expression ')' | IDENTIFIER
-
-

@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface ReturnStmt extends PsiElement {
+public interface ReturnStmt extends Statement {
 
   @Nullable
   Expression getExpression();

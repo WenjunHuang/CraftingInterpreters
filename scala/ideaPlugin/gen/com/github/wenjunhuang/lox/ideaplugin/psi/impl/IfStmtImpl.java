@@ -7,16 +7,16 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
-import static com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import static com.github.wenjunhuang.lox.ideaplugin.LoxTypes.*;
 import com.github.wenjunhuang.lox.ideaplugin.psi.*;
 
-public class IfStmtImpl extends ASTWrapperPsiElement implements IfStmt {
+public class IfStmtImpl extends StatementImpl implements IfStmt {
 
   public IfStmtImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull Visitor visitor) {
     visitor.visitIfStmt(this);
   }

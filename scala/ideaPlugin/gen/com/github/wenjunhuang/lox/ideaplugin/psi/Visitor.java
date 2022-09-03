@@ -12,19 +12,19 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitAssignmentExpr(@NotNull AssignmentExpr o) {
-    visitPsiElement(o);
+    visitExpression(o);
   }
 
   public void visitBlockStmt(@NotNull BlockStmt o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitCallExpr(@NotNull CallExpr o) {
-    visitPsiElement(o);
+    visitExpression(o);
   }
 
   public void visitComparisonExpr(@NotNull ComparisonExpr o) {
-    visitPsiElement(o);
+    visitExpression(o);
   }
 
   public void visitDeclaration(@NotNull Declaration o) {
@@ -32,11 +32,11 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitEqualityExpr(@NotNull EqualityExpr o) {
-    visitPsiElement(o);
+    visitExpression(o);
   }
 
   public void visitExprStmt(@NotNull ExprStmt o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitExpression(@NotNull Expression o) {
@@ -44,11 +44,11 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitFactorExpr(@NotNull FactorExpr o) {
-    visitPsiElement(o);
+    visitExpression(o);
   }
 
   public void visitForStmt(@NotNull ForStmt o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitFunDecl(@NotNull FunDecl o) {
@@ -60,15 +60,15 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitIfStmt(@NotNull IfStmt o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitLogicAndExpr(@NotNull LogicAndExpr o) {
-    visitPsiElement(o);
+    visitExpression(o);
   }
 
   public void visitLogicOrExpr(@NotNull LogicOrExpr o) {
-    visitPsiElement(o);
+    visitExpression(o);
   }
 
   public void visitParameters(@NotNull Parameters o) {
@@ -76,15 +76,15 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitPrimaryExpr(@NotNull PrimaryExpr o) {
-    visitPsiElement(o);
+    visitExpression(o);
   }
 
   public void visitPrintStmt(@NotNull PrintStmt o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitReturnStmt(@NotNull ReturnStmt o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitStatement(@NotNull Statement o) {
@@ -92,11 +92,11 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitTermExpr(@NotNull TermExpr o) {
-    visitPsiElement(o);
+    visitExpression(o);
   }
 
   public void visitUnaryExpr(@NotNull UnaryExpr o) {
-    visitPsiElement(o);
+    visitExpression(o);
   }
 
   public void visitVarDecl(@NotNull VarDecl o) {
@@ -104,7 +104,7 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitWhileStmt(@NotNull WhileStmt o) {
-    visitPsiElement(o);
+    visitStatement(o);
   }
 
   public void visitPsiElement(@NotNull PsiElement o) {

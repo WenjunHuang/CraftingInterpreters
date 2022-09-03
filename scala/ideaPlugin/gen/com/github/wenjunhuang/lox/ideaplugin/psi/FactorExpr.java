@@ -5,9 +5,9 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FactorExpr extends PsiElement {
+public interface FactorExpr extends Expression {
 
   @NotNull
-  List<UnaryExpr> getUnaryExprList();
+  List<Expression> getExpressionList();
 
 }

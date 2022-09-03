@@ -5,9 +5,9 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface LogicOrExpr extends PsiElement {
+public interface LogicOrExpr extends Expression {
 
   @NotNull
-  List<LogicAndExpr> getLogicAndExprList();
+  List<Expression> getExpressionList();
 
 }

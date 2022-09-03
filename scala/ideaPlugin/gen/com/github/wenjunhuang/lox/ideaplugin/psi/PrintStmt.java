@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface PrintStmt extends PsiElement {
+public interface PrintStmt extends Statement {
 
   @NotNull
   Expression getExpression();

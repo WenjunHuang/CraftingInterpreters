@@ -5,13 +5,10 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface AssignmentExpr extends PsiElement {
+public interface AssignmentExpr extends Expression {
 
   @Nullable
-  AssignmentExpr getAssignmentExpr();
-
-  @Nullable
-  LogicOrExpr getLogicOrExpr();
+  Expression getExpression();
 
   @Nullable
   PsiElement getIdentifier();

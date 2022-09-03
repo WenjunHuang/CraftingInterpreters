@@ -23,7 +23,7 @@ class LoxParserDefinition extends ParserDefinition:
   override def getStringLiteralElements: TokenSet = TokenSet.EMPTY
 
   override def createElement(node: ASTNode): PsiElement =
-    LoxElementTypes.Factory.createElement(node)
+    LoxTypes.Factory.createElement(node)
 
   override def createFile(viewProvider: FileViewProvider): PsiFile =
     LoxFile(viewProvider)
@@ -33,6 +33,6 @@ end LoxParserDefinition
 object LoxParserDefinition:
   val FILE: IFileElementType = new IFileElementType(Lox)
   val WHITE_SPACES: TokenSet = TokenSet.create(TokenType.WHITE_SPACE)
-  val COMMENTS: TokenSet = TokenSet.create(LoxElementTypes.LINE_COMMENT, LoxElementTypes.BLOCK_COMMENT)
+  val COMMENTS: TokenSet = TokenSet.create(LoxTypes.LINE_COMMENT, LoxTypes.BLOCK_COMMENT)
 
 end LoxParserDefinition

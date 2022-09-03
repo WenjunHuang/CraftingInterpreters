@@ -7,16 +7,16 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
-import static com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import static com.github.wenjunhuang.lox.ideaplugin.LoxTypes.*;
 import com.github.wenjunhuang.lox.ideaplugin.psi.*;
 
-public class EqualityExprImpl extends ASTWrapperPsiElement implements EqualityExpr {
+public class EqualityExprImpl extends ExpressionImpl implements EqualityExpr {
 
   public EqualityExprImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull Visitor visitor) {
     visitor.visitEqualityExpr(this);
   }
@@ -29,8 +29,8 @@ public class EqualityExprImpl extends ASTWrapperPsiElement implements EqualityEx
 
   @Override
   @NotNull
-  public List<ComparisonExpr> getComparisonExprList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, ComparisonExpr.class);
+  public List<Expression> getExpressionList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expression.class);
   }
 
 }

@@ -3,7 +3,7 @@ package com.github.wenjunhuang.lox.ideaplugin;
 
 import com.intellij.lang.PsiBuilder;
 import com.intellij.lang.PsiBuilder.Marker;
-import static com.github.wenjunhuang.lox.ideaplugin.LoxElementTypes.*;
+import static com.github.wenjunhuang.lox.ideaplugin.LoxTypes.*;
 import static com.github.wenjunhuang.lox.ideaplugin.LoxParserUtil.*;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.lang.ASTNode;
@@ -21,7 +21,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
 
   public void parseLight(IElementType t, PsiBuilder b) {
     boolean r;
-    b = adapt_builder_(t, b, this, null);
+    b = adapt_builder_(t, b, this, EXTENDS_SETS_);
     Marker m = enter_section_(b, 0, _COLLAPSE_, null);
     r = parse_root_(t, b);
     exit_section_(b, 0, m, t, r, true, TRUE_CONDITION);
@@ -34,6 +34,14 @@ public class LoxParser implements PsiParser, LightPsiParser {
   static boolean parse_root_(IElementType t, PsiBuilder b, int l) {
     return program(b, l + 1);
   }
+
+  public static final TokenSet[] EXTENDS_SETS_ = new TokenSet[] {
+    create_token_set_(BLOCK_STMT, EXPR_STMT, FOR_STMT, IF_STMT,
+      PRINT_STMT, RETURN_STMT, STATEMENT, WHILE_STMT),
+    create_token_set_(ASSIGNMENT_EXPR, CALL_EXPR, COMPARISON_EXPR, EQUALITY_EXPR,
+      EXPRESSION, FACTOR_EXPR, LOGIC_AND_EXPR, LOGIC_OR_EXPR,
+      PRIMARY_EXPR, TERM_EXPR, UNARY_EXPR),
+  };
 
   /* ********************************************************** */
   // expression ("," expression)*
@@ -63,7 +71,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "arguments_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, ",");
+    r = consumeToken(b, COMMA);
     r = r && expression(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
@@ -74,7 +82,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean assignmentExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "assignmentExpr")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, ASSIGNMENT_EXPR, "<assignment expr>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, ASSIGNMENT_EXPR, "<assignment expr>");
     r = assignmentExpr_0(b, l + 1);
     if (!r) r = logicOrExpr(b, l + 1);
     exit_section_(b, l, m, r, false, null);
@@ -86,8 +94,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "assignmentExpr_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, IDENTIFIER);
-    r = r && consumeToken(b, "=");
+    r = consumeTokens(b, 0, IDENTIFIER, EQUAL);
     r = r && assignmentExpr(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
@@ -97,12 +104,13 @@ public class LoxParser implements PsiParser, LightPsiParser {
   // "{" declaration * "}"
   public static boolean blockStmt(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "blockStmt")) return false;
+    if (!nextTokenIs(b, LEFT_BRACE)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, BLOCK_STMT, "<block stmt>");
-    r = consumeToken(b, "{");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, LEFT_BRACE);
     r = r && blockStmt_1(b, l + 1);
-    r = r && consumeToken(b, "}");
-    exit_section_(b, l, m, r, false, null);
+    r = r && consumeToken(b, RIGHT_BRACE);
+    exit_section_(b, m, BLOCK_STMT, r);
     return r;
   }
 
@@ -122,7 +130,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean callExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "callExpr")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, CALL_EXPR, "<call expr>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, CALL_EXPR, "<call expr>");
     r = primaryExpr(b, l + 1);
     r = r && callExpr_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
@@ -145,9 +153,9 @@ public class LoxParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "callExpr_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, "(");
+    r = consumeToken(b, LEFT_PAREN);
     r = r && callExpr_1_0_1(b, l + 1);
-    r = r && consumeToken(b, ")");
+    r = r && consumeToken(b, RIGHT_PAREN);
     exit_section_(b, m, null, r);
     return r;
   }
@@ -164,7 +172,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean comparisonExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "comparisonExpr")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, COMPARISON_EXPR, "<comparison expr>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, COMPARISON_EXPR, "<comparison expr>");
     r = termExpr(b, l + 1);
     r = r && comparisonExpr_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
@@ -197,10 +205,10 @@ public class LoxParser implements PsiParser, LightPsiParser {
   private static boolean comparisonExpr_1_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "comparisonExpr_1_0_0")) return false;
     boolean r;
-    r = consumeToken(b, ">");
-    if (!r) r = consumeToken(b, ">=");
-    if (!r) r = consumeToken(b, "<");
-    if (!r) r = consumeToken(b, "<=");
+    r = consumeToken(b, GREATER);
+    if (!r) r = consumeToken(b, GREATER_EQUAL);
+    if (!r) r = consumeToken(b, LESS);
+    if (!r) r = consumeToken(b, LESS_EQUAL);
     return r;
   }
 
@@ -222,7 +230,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean equalityExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "equalityExpr")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, EQUALITY_EXPR, "<equality expr>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, EQUALITY_EXPR, "<equality expr>");
     r = comparisonExpr(b, l + 1);
     r = r && equalityExpr_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
@@ -255,8 +263,8 @@ public class LoxParser implements PsiParser, LightPsiParser {
   private static boolean equalityExpr_1_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "equalityExpr_1_0_0")) return false;
     boolean r;
-    r = consumeToken(b, "!=");
-    if (!r) r = consumeToken(b, "==");
+    r = consumeToken(b, BANG_EQUAL);
+    if (!r) r = consumeToken(b, EQUAL_EQUAL);
     return r;
   }
 
@@ -267,7 +275,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, EXPR_STMT, "<expr stmt>");
     r = expression(b, l + 1);
-    r = r && consumeToken(b, ";");
+    r = r && consumeToken(b, SEMICOLON);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -277,7 +285,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean expression(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "expression")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, EXPRESSION, "<expression>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, EXPRESSION, "<expression>");
     r = assignmentExpr(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
@@ -288,7 +296,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean factorExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "factorExpr")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, FACTOR_EXPR, "<factor expr>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, FACTOR_EXPR, "<factor expr>");
     r = unaryExpr(b, l + 1);
     r = r && factorExpr_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
@@ -321,8 +329,8 @@ public class LoxParser implements PsiParser, LightPsiParser {
   private static boolean factorExpr_1_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "factorExpr_1_0_0")) return false;
     boolean r;
-    r = consumeToken(b, "/");
-    if (!r) r = consumeToken(b, "*");
+    r = consumeToken(b, SLASH);
+    if (!r) r = consumeToken(b, STAR);
     return r;
   }
 
@@ -330,17 +338,17 @@ public class LoxParser implements PsiParser, LightPsiParser {
   // "for" "(" (varDecl | exprStmt |";") expression? ";" expression? ")" statement
   public static boolean forStmt(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "forStmt")) return false;
+    if (!nextTokenIs(b, FOR)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, FOR_STMT, "<for stmt>");
-    r = consumeToken(b, "for");
-    r = r && consumeToken(b, "(");
+    Marker m = enter_section_(b);
+    r = consumeTokens(b, 0, FOR, LEFT_PAREN);
     r = r && forStmt_2(b, l + 1);
     r = r && forStmt_3(b, l + 1);
-    r = r && consumeToken(b, ";");
+    r = r && consumeToken(b, SEMICOLON);
     r = r && forStmt_5(b, l + 1);
-    r = r && consumeToken(b, ")");
+    r = r && consumeToken(b, RIGHT_PAREN);
     r = r && statement(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, FOR_STMT, r);
     return r;
   }
 
@@ -350,7 +358,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
     boolean r;
     r = varDecl(b, l + 1);
     if (!r) r = exprStmt(b, l + 1);
-    if (!r) r = consumeToken(b, ";");
+    if (!r) r = consumeToken(b, SEMICOLON);
     return r;
   }
 
@@ -372,11 +380,12 @@ public class LoxParser implements PsiParser, LightPsiParser {
   // "fun" function
   public static boolean funDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "funDecl")) return false;
+    if (!nextTokenIs(b, FUN)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, FUN_DECL, "<fun decl>");
-    r = consumeToken(b, "fun");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, FUN);
     r = r && function(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, FUN_DECL, r);
     return r;
   }
 
@@ -387,10 +396,9 @@ public class LoxParser implements PsiParser, LightPsiParser {
     if (!nextTokenIs(b, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, IDENTIFIER);
-    r = r && consumeToken(b, "(");
+    r = consumeTokens(b, 0, IDENTIFIER, LEFT_PAREN);
     r = r && function_2(b, l + 1);
-    r = r && consumeToken(b, ")");
+    r = r && consumeToken(b, RIGHT_PAREN);
     r = r && blockStmt(b, l + 1);
     exit_section_(b, m, FUNCTION, r);
     return r;
@@ -407,15 +415,15 @@ public class LoxParser implements PsiParser, LightPsiParser {
   // "if" "(" expression ")" statement ("else" statement)?
   public static boolean ifStmt(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ifStmt")) return false;
+    if (!nextTokenIs(b, IF)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, IF_STMT, "<if stmt>");
-    r = consumeToken(b, "if");
-    r = r && consumeToken(b, "(");
+    Marker m = enter_section_(b);
+    r = consumeTokens(b, 0, IF, LEFT_PAREN);
     r = r && expression(b, l + 1);
-    r = r && consumeToken(b, ")");
+    r = r && consumeToken(b, RIGHT_PAREN);
     r = r && statement(b, l + 1);
     r = r && ifStmt_5(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, IF_STMT, r);
     return r;
   }
 
@@ -431,7 +439,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "ifStmt_5_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, "else");
+    r = consumeToken(b, ELSE);
     r = r && statement(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
@@ -442,7 +450,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean logicAndExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "logicAndExpr")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, LOGIC_AND_EXPR, "<logic and expr>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, LOGIC_AND_EXPR, "<logic and expr>");
     r = equalityExpr(b, l + 1);
     r = r && logicAndExpr_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
@@ -465,7 +473,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "logicAndExpr_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, "and");
+    r = consumeToken(b, AND);
     r = r && equalityExpr(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
@@ -476,7 +484,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean logicOrExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "logicOrExpr")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, LOGIC_OR_EXPR, "<logic or expr>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, LOGIC_OR_EXPR, "<logic or expr>");
     r = logicAndExpr(b, l + 1);
     r = r && logicOrExpr_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
@@ -499,7 +507,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "logicOrExpr_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, "or");
+    r = consumeToken(b, OR);
     r = r && logicAndExpr(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
@@ -534,8 +542,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "parameters_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, ",");
-    r = r && consumeToken(b, IDENTIFIER);
+    r = consumeTokens(b, 0, COMMA, IDENTIFIER);
     exit_section_(b, m, null, r);
     return r;
   }
@@ -548,9 +555,9 @@ public class LoxParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b, l, _NONE_, PRIMARY_EXPR, "<primary expr>");
     r = consumeToken(b, NUMBER);
     if (!r) r = consumeToken(b, STRING);
-    if (!r) r = consumeToken(b, "true");
-    if (!r) r = consumeToken(b, "false");
-    if (!r) r = consumeToken(b, "nil");
+    if (!r) r = consumeToken(b, TRUE);
+    if (!r) r = consumeToken(b, FALSE);
+    if (!r) r = consumeToken(b, NIL);
     if (!r) r = primaryExpr_5(b, l + 1);
     if (!r) r = consumeToken(b, IDENTIFIER);
     exit_section_(b, l, m, r, false, null);
@@ -562,9 +569,9 @@ public class LoxParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "primaryExpr_5")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, "(");
+    r = consumeToken(b, LEFT_PAREN);
     r = r && expression(b, l + 1);
-    r = r && consumeToken(b, ")");
+    r = r && consumeToken(b, RIGHT_PAREN);
     exit_section_(b, m, null, r);
     return r;
   }
@@ -573,12 +580,13 @@ public class LoxParser implements PsiParser, LightPsiParser {
   // "print" expression ";"
   public static boolean printStmt(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "printStmt")) return false;
+    if (!nextTokenIs(b, PRINT)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, PRINT_STMT, "<print stmt>");
-    r = consumeToken(b, "print");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, PRINT);
     r = r && expression(b, l + 1);
-    r = r && consumeToken(b, ";");
-    exit_section_(b, l, m, r, false, null);
+    r = r && consumeToken(b, SEMICOLON);
+    exit_section_(b, m, PRINT_STMT, r);
     return r;
   }
 
@@ -598,12 +606,13 @@ public class LoxParser implements PsiParser, LightPsiParser {
   // "return" expression? ";"
   public static boolean returnStmt(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "returnStmt")) return false;
+    if (!nextTokenIs(b, RETURN)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, RETURN_STMT, "<return stmt>");
-    r = consumeToken(b, "return");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, RETURN);
     r = r && returnStmt_1(b, l + 1);
-    r = r && consumeToken(b, ";");
-    exit_section_(b, l, m, r, false, null);
+    r = r && consumeToken(b, SEMICOLON);
+    exit_section_(b, m, RETURN_STMT, r);
     return r;
   }
 
@@ -619,7 +628,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean statement(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "statement")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, STATEMENT, "<statement>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, STATEMENT, "<statement>");
     r = printStmt(b, l + 1);
     if (!r) r = blockStmt(b, l + 1);
     if (!r) r = ifStmt(b, l + 1);
@@ -636,7 +645,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean termExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "termExpr")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, TERM_EXPR, "<term expr>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, TERM_EXPR, "<term expr>");
     r = factorExpr(b, l + 1);
     r = r && termExpr_1(b, l + 1);
     exit_section_(b, l, m, r, false, null);
@@ -669,8 +678,8 @@ public class LoxParser implements PsiParser, LightPsiParser {
   private static boolean termExpr_1_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "termExpr_1_0_0")) return false;
     boolean r;
-    r = consumeToken(b, "-");
-    if (!r) r = consumeToken(b, "+");
+    r = consumeToken(b, MINUS);
+    if (!r) r = consumeToken(b, PLUS);
     return r;
   }
 
@@ -701,8 +710,8 @@ public class LoxParser implements PsiParser, LightPsiParser {
   private static boolean unaryExpr_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "unaryExpr_0_0")) return false;
     boolean r;
-    r = consumeToken(b, "!");
-    if (!r) r = consumeToken(b, "-");
+    r = consumeToken(b, BANG);
+    if (!r) r = consumeToken(b, MINUS);
     return r;
   }
 
@@ -710,13 +719,13 @@ public class LoxParser implements PsiParser, LightPsiParser {
   // "var" IDENTIFIER ("=" expression )? ";"
   public static boolean varDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "varDecl")) return false;
+    if (!nextTokenIs(b, VAR)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, VAR_DECL, "<var decl>");
-    r = consumeToken(b, "var");
-    r = r && consumeToken(b, IDENTIFIER);
+    Marker m = enter_section_(b);
+    r = consumeTokens(b, 0, VAR, IDENTIFIER);
     r = r && varDecl_2(b, l + 1);
-    r = r && consumeToken(b, ";");
-    exit_section_(b, l, m, r, false, null);
+    r = r && consumeToken(b, SEMICOLON);
+    exit_section_(b, m, VAR_DECL, r);
     return r;
   }
 
@@ -732,7 +741,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "varDecl_2_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, "=");
+    r = consumeToken(b, EQUAL);
     r = r && expression(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
@@ -742,14 +751,14 @@ public class LoxParser implements PsiParser, LightPsiParser {
   // "while" "(" expression ")" statement
   public static boolean whileStmt(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "whileStmt")) return false;
+    if (!nextTokenIs(b, WHILE)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, WHILE_STMT, "<while stmt>");
-    r = consumeToken(b, "while");
-    r = r && consumeToken(b, "(");
+    Marker m = enter_section_(b);
+    r = consumeTokens(b, 0, WHILE, LEFT_PAREN);
     r = r && expression(b, l + 1);
-    r = r && consumeToken(b, ")");
+    r = r && consumeToken(b, RIGHT_PAREN);
     r = r && statement(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, WHILE_STMT, r);
     return r;
   }
 

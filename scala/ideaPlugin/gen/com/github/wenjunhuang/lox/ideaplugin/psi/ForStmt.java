@@ -5,16 +5,13 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface ForStmt extends PsiElement {
-
-  @Nullable
-  ExprStmt getExprStmt();
+public interface ForStmt extends Statement {
 
   @NotNull
   List<Expression> getExpressionList();
 
   @NotNull
-  Statement getStatement();
+  List<Statement> getStatementList();
 
   @Nullable
   VarDecl getVarDecl();

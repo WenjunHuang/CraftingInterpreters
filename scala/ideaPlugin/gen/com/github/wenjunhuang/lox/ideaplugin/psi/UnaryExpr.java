@@ -5,12 +5,9 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface UnaryExpr extends PsiElement {
+public interface UnaryExpr extends Expression {
 
   @Nullable
-  CallExpr getCallExpr();
-
-  @Nullable
-  UnaryExpr getUnaryExpr();
+  Expression getExpression();
 
 }

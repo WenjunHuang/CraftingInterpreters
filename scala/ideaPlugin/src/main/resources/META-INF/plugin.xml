@@ -6,11 +6,17 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <fileType name="Lox File" implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxFileType$" fieldName="MODULE$" language="Lox" extensions="lox"/>
+        <fileType name="Lox File" implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxFileType$"
+                  fieldName="MODULE$" language="Lox" extensions="lox"/>
         <lang.parserDefinition language="Lox"
                                implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxParserDefinition"/>
-<!--        <lang.psiStructureViewFactory language="Lox"-->
-<!--                                      implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxStructureViewFactory"/>-->
+        <lang.syntaxHighlighterFactory language="Lox"
+                                       implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxSyntaxHighlighterFactory"/>
+        <colorSettingsPage
+                implementation="com.github.wenjunhuang.lox.ideaplugin.LoxColorSettingsPage"/>
+        <configurationType implementation="com.github.wenjunhuang.lox.ideaplugin.execution.LoxRunConfigurationType"/>
+        <!--        <lang.psiStructureViewFactory language="Lox"-->
+        <!--                                      implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxStructureViewFactory"/>-->
 
     </extensions>
 
