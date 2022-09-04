@@ -6,11 +6,20 @@ import com.intellij.uiDesigner.core.{GridConstraints, GridLayoutManager, Spacer}
 
 import javax.swing.{JComponent, JLabel, JPanel}
 import scala.swing.GridPanel
+import com.github.wenjunhuang.lox.ideaplugin.ui.all.*
 
 class LoxSettingsEditor extends SettingsEditor[LoxRunConfiguration]:
-  private lazy val scriptName = new LabeledComponent[TextFieldWithBrowseButton]():
+  import LoxSettingsEditor.*
+
+  //  private lazy val scriptName = new LabeledComponent[TextFieldWithBrowseButton]():
+  //    setText("Script Name")
+  //    setComponent(TextFieldWithBrowseButton())
+  private lazy val scriptName: LabeledComponent[TextFieldWithBrowseButton] = labeledComponent {
     setText("Script Name")
     setComponent(TextFieldWithBrowseButton())
+//    text := "Script Name"
+// component := textFieldWithBrowseButton()
+  }
 
   private lazy val panel = new JPanel(GridLayoutManager(2, 1)):
     private val c1 = GridConstraints()

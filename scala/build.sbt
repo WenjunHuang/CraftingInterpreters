@@ -79,6 +79,10 @@ ThisBuild / intellijPluginName := "CraftingInterpreters"
 ThisBuild / intellijBuild := versions.intelliJBuild
 ThisBuild / intellijPlatform := IntelliJPlatform.IdeaCommunity
 
+lazy val macros = project
+  .settings(
+    l
+  )
 lazy val ideaPlugin =
   project
     .in(file("ideaPlugin"))

@@ -26,7 +26,8 @@ class LoxRunConfiguration(project: Project, factory: ConfigurationFactory, name:
 
   override def getConfigurationEditor: SettingsEditor[LoxRunConfiguration] = LoxSettingsEditor()
 
-  override def getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState = EmptyRunProfileState.INSTANCE
+  override def getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState =
+    EmptyRunProfileState.INSTANCE
 
   override def clone(): RunConfiguration = super.clone()
 

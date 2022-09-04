@@ -1,5 +1,5 @@
 // This is a generated file. Not intended for manual editing.
-package com.github.wenjunhuang.lox.ideaplugin.psi.impl;
+package generated.psi.impl;
 
 import java.util.List;
 import org.jetbrains.annotations.*;
@@ -7,18 +7,18 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
-import static com.github.wenjunhuang.lox.ideaplugin.LoxTypes.*;
+import static generated.GeneratedTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
-import com.github.wenjunhuang.lox.ideaplugin.psi.*;
+import generated.psi.*;
 
-public class ArgumentsImpl extends ASTWrapperPsiElement implements Arguments {
+public class VarDeclImpl extends ASTWrapperPsiElement implements VarDecl {
 
-  public ArgumentsImpl(@NotNull ASTNode node) {
+  public VarDeclImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull Visitor visitor) {
-    visitor.visitArguments(this);
+    visitor.visitVarDecl(this);
   }
 
   @Override
@@ -28,9 +28,15 @@ public class ArgumentsImpl extends ASTWrapperPsiElement implements Arguments {
   }
 
   @Override
+  @Nullable
+  public Expression getExpression() {
+    return findChildByClass(Expression.class);
+  }
+
+  @Override
   @NotNull
-  public List<Expression> getExpressionList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expression.class);
+  public PsiElement getIdentifier() {
+    return findNotNullChildByType(IDENTIFIER);
   }
 
 }
