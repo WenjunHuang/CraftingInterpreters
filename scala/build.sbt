@@ -1,5 +1,5 @@
 val versions = new {
-  val scalaVersion = "3.2.0-RC4"
+  val scalaVersion = "3.2.0"
   val scalaTest = "3.2.13"
   val monocle = "3.1.0"
   val scalaJSDom = "2.2.0"
@@ -15,6 +15,7 @@ val versions = new {
 
 ThisBuild / scalaVersion := versions.scalaVersion
 
+lazy val macros = project
 lazy val library =
   crossProject(JSPlatform, JVMPlatform)
     .crossType(CrossType.Pure)
@@ -79,10 +80,6 @@ ThisBuild / intellijPluginName := "CraftingInterpreters"
 ThisBuild / intellijBuild := versions.intelliJBuild
 ThisBuild / intellijPlatform := IntelliJPlatform.IdeaCommunity
 
-lazy val macros = project
-  .settings(
-    l
-  )
 lazy val ideaPlugin =
   project
     .in(file("ideaPlugin"))
@@ -107,4 +104,4 @@ lazy val ideaPlugin =
         ),
       library.jvm / packageMethod := PackagingMethod.MergeIntoParent()
     )
-    .dependsOn(library.jvm)
+    .dependsOn(library.jvm,macros)

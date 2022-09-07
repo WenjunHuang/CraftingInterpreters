@@ -1,0 +1,6 @@
+var count = 10;
+var a = 0;
+while (count > 0) {
+    a = a + count;
+    count = count - 1;
+}

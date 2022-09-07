@@ -10,4 +10,5 @@ class LoxParsingTest extends ParsingTestCase("", "lox", new LoxParserDefinition(
 
   def testVariableDeclarations(): Unit = doTest(true)
   def testFunctionDeclaration(): Unit = doTest(true)
+  def testWhileStatement(): Unit = doTest(true)
 end LoxParsingTest
