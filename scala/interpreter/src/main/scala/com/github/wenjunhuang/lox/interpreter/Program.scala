@@ -3,25 +3,13 @@ package com.github.wenjunhuang.lox.interpreter
 import com.github.wenjunhuang.lox.*
 import org.jline.reader.{LineReader, LineReaderBuilder}
 
+import java.io.{File, PrintStream}
 import scala.collection.mutable
 import scala.io.StdIn
+import scala.util.{Try, Using}
+
 object Program:
   def main(args: Array[String]): Unit =
-//    val source = """
-//                   |fun sayHi(first, last){
-//                   |print "Hi, " + first + " " + last + "!";
-//                   |}
-//                   |sayHi("Dear","Reader");
-//                   |""".stripMargin
-//    val source = """
-//                   |fun fib(n){
-//                   |if (n <= 1) return n;
-//                   |return fib(n - 1) + fib(n - 2);
-//                   |}
-//                   |for (var i = 0 ;i< 20;i = i+1){
-//                   |print fib(i);
-//                   |}
-//                   |""".stripMargin
     val source = """
                    |fun makeCounter(){
                    |var i = 0;
@@ -37,18 +25,19 @@ object Program:
                    |counter();
                    |
                    |""".stripMargin
-    val interpreter = new Interpreter()
+    Lox.output = Console.out
+    val interpreter = new Interpreter(Console.out)
     runSource(interpreter, source)
 
-//    runPrompt()
+  def runFile(file:File,output:PrintStream): Try[Unit] =
+    Lox.output = output
+    Using(io.Source.fromFile(file)) { source =>
+      val interpreter = new Interpreter(output)
+      runSource(interpreter, source.mkString)
+    }
 
-  //    run("""
-  //          |print "one"
-  //          |print true;
-  //          |print 2 + 1;
-  //          |""".stripMargin)
   def runPrompt() =
-    val interpreter = new Interpreter()
+    val interpreter = new Interpreter(Console.out)
     val buffer = mutable.Buffer[String]()
     LazyList
       .continually(StdIn.readLine("> "))

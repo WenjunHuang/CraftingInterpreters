@@ -1,5 +1,5 @@
 package com.github.wenjunhuang.lox
-import java.io.{BufferedReader, InputStreamReader}
+import java.io.{BufferedReader, InputStreamReader, PrintStream}
 import java.nio.file.{Files, Paths}
 import scala.collection.mutable
 import scala.io.StdIn
@@ -8,6 +8,7 @@ import scala.util.Using
 object Lox:
   var hasRuntimeError = false
   var hadError = false
+  var output: PrintStream = System.out
 
   def error(token: Token, message: String): Unit =
     if token.tt == TokenType.EOF then report(token.line, "", message)
@@ -17,11 +18,11 @@ object Lox:
     report(line, "", message)
 
   def runtimeError(error: RuntimeError) =
-    println(s"${error.getMessage}\n[line ${error.token.line}]")
+    output.println(s"${error.getMessage}\n[line ${error.token.line}]")
     hasRuntimeError = true
   end runtimeError
   private def report(line: Int, where: String, message: String) =
-    println(s"[line $line] Error $where: $message")
+    output.println(s"[line $line] Error $where: $message")
     hadError = true
   end report
 end Lox

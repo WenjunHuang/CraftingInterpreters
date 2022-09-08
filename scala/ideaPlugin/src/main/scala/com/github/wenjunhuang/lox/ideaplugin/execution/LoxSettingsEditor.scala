@@ -1,22 +1,32 @@
 package com.github.wenjunhuang.lox.ideaplugin.execution
 
+import com.github.wenjunhuang.lox.ideaplugin.LoxFileType
 import com.github.wenjunhuang.lox.ideaplugin.ui.PropertyNames.*
 import com.github.wenjunhuang.lox.macros.PojoBuilder.*
 import com.github.wenjunhuang.lox.macros.SwingOps.*
+import com.intellij.openapi.application.{Application, ApplicationManager}
+import com.intellij.openapi.fileChooser.{FileChooser, FileChooserDescriptor, FileChooserDescriptorFactory}
 import com.intellij.openapi.options.SettingsEditor
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.{LabeledComponent, TextFieldWithBrowseButton}
 import com.intellij.uiDesigner.core.{GridConstraints, GridLayoutManager, Spacer}
 
+import java.awt.event.{ActionEvent, ActionListener}
 import javax.swing.{JComponent, JLabel, JPanel}
 import scala.swing.GridPanel
 
-class LoxSettingsEditor extends SettingsEditor[LoxRunConfiguration]:
+class LoxSettingsEditor(project:Project) extends SettingsEditor[LoxRunConfiguration]:
   import LoxSettingsEditor.*
 
   private lazy val scriptName: LabeledComponent[TextFieldWithBrowseButton] =
     pojoBuilder[LabeledComponent[TextFieldWithBrowseButton]] {
-      text := "Script Name"
-      component := TextFieldWithBrowseButton()
+      text := "Script Name2"
+      component := new TextFieldWithBrowseButton():
+        addBrowseFolderListener("Lox Source File",
+          "Please choose a lox source file",
+          project,
+          FileChooserDescriptorFactory.createSingleFileDescriptor(LoxFileType))
+
     }
 
   private lazy val panel = pojoBuilder[JPanel] {

@@ -2,7 +2,9 @@ package com.github.wenjunhuang.lox.interpreter
 
 import com.github.wenjunhuang.lox.*
 
-class Interpreter extends ExprVisitor with StatementVisitor:
+import java.io.PrintStream
+
+class Interpreter(output:PrintStream) extends ExprVisitor with StatementVisitor:
   import TokenType.*
   import Value.*
 
@@ -89,7 +91,7 @@ class Interpreter extends ExprVisitor with StatementVisitor:
 
   override def visitPrintStatement(statement: Statement.Print): Unit =
     val value = evaluate(statement.expression)
-    println(value)
+    output.println(value)
     ()
 
   override def visitVariable(expr: Expression.Variable): Value =

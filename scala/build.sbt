@@ -6,7 +6,7 @@ val versions = new {
   val scalaJSReact = "2.1.1"
   val scalaCss = "1.0.0"
   val react = "18.2.0"
-  val intelliJBuild = "222.3739.54"
+  val intelliJBuild = "2022.2.1"
 
   val scalaSwing = "3.0.0"
   val catsEffect = "3.3.14"
@@ -98,10 +98,10 @@ lazy val ideaPlugin =
         Seq(
           "org.scala-lang.modules" % "scala-swing_3" % versions.scalaSwing,
           "org.scala-lang" % "scala3-library_3" % versions.scalaVersion,
-//          "org.scala-lang" % "scala-library" % "2.13.8",
           "org.typelevel" % "cats-effect_3" % versions.catsEffect,
           "org.scalatest" %% "scalatest" % versions.scalaTest % Test
         ),
-      library.jvm / packageMethod := PackagingMethod.MergeIntoParent()
+      library.jvm / packageMethod := PackagingMethod.MergeIntoParent(),
+      interpreter / packageMethod := PackagingMethod.MergeIntoParent()
     )
-    .dependsOn(library.jvm,macros)
+    .dependsOn(library.jvm, interpreter, macros)
