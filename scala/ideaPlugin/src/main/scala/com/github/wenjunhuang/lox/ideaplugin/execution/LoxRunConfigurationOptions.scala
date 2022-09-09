@@ -7,7 +7,7 @@ class LoxRunConfigurationOptions extends RunConfigurationOptions:
   private val scriptName: StoredProperty[String] = string("")
     .provideDelegate(this, "scriptName")
 
-  def getScriptName: String = scriptName.getValue(this)
+  def getScriptName: String             = scriptName.getValue(this)
   def setScriptName(name: String): Unit = scriptName.setValue(this, name)
 
 end LoxRunConfigurationOptions

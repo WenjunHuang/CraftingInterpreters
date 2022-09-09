@@ -8,16 +8,17 @@ import com.intellij.execution.process.{ProcessAdapter, ProcessEvent, ProcessHand
 import com.intellij.execution.runners.{ExecutionEnvironment, ProgramRunner}
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.execution.{DefaultExecutionResult, ExecutionResult, Executor}
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 
-import java.io.{File,ByteArrayOutputStream, OutputStream, PrintStream}
+import java.io.{ByteArrayOutputStream, File, OutputStream, PrintStream}
 import java.nio.charset.StandardCharsets
 import scala.util.Using
 
 class LoxRunConfiguration(project: Project, factory: ConfigurationFactory, name: String)
-    extends RunConfigurationBase[LocatableRunConfigurationOptions](project, factory, name):
+    extends RunConfigurationBase[LoxRunConfigurationOptions](project, factory, name):
   self =>
 
   override def getOptions: LoxRunConfigurationOptions = super.getOptions.asInstanceOf[LoxRunConfigurationOptions]
@@ -29,8 +30,8 @@ class LoxRunConfiguration(project: Project, factory: ConfigurationFactory, name:
   override def getConfigurationEditor: SettingsEditor[LoxRunConfiguration] = LoxSettingsEditor(project)
 
   override def getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState =
-    (executor: Executor, runner: ProgramRunner[_]) =>
-      val consoleView = ConsoleViewImpl(project,true)
+    (executor: Executor, runner: ProgramRunner[?]) =>
+      val consoleView    = ConsoleViewImpl(project, true)
       val processHandler = new ProcessHandler() {
         override def destroyProcessImpl(): Unit =
           notifyProcessTerminated(0)
@@ -42,16 +43,24 @@ class LoxRunConfiguration(project: Project, factory: ConfigurationFactory, name:
 
         override def getProcessInput: OutputStream = null
       }
-      processHandler.addProcessListener(new ProcessAdapter() {
-        override def startNotified(event: ProcessEvent): Unit =
-          Using.resource(new ByteArrayOutputStream()) { baos =>
-            Program.runFile(File(self.getScriptName),new PrintStream(baos))
-            event.getProcessHandler.notifyTextAvailable(baos.toString(StandardCharsets.UTF_8), ProcessOutputType.STDOUT)
-            event.getProcessHandler.destroyProcess()
-          }
-      },consoleView)
+      processHandler.addProcessListener(
+        new ProcessAdapter() {
+          override def startNotified(event: ProcessEvent): Unit =
+            val processHandler = event.getProcessHandler
+            ApplicationManager.getApplication.executeOnPooledThread(
+              new Runnable:
+                override def run(): Unit =
+                  Using.resource(new ByteArrayOutputStream()) { baos =>
+                    Program.runFile(File(self.getScriptName), new PrintStream(baos))
+                    processHandler.notifyTextAvailable(baos.toString(StandardCharsets.UTF_8), ProcessOutputType.STDOUT)
+                    processHandler.destroyProcess()
+                  }
+            )
+        },
+        consoleView
+      )
       consoleView.attachToProcess(processHandler)
-      DefaultExecutionResult(consoleView,processHandler)
+      DefaultExecutionResult(consoleView, processHandler)
 
   override def clone(): RunConfiguration = super.clone()
 

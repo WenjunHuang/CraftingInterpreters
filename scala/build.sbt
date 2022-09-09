@@ -96,9 +96,7 @@ lazy val ideaPlugin =
       Compile / unmanagedSourceDirectories += (baseDirectory.value / "gen"),
       libraryDependencies ++=
         Seq(
-          "org.scala-lang.modules" % "scala-swing_3" % versions.scalaSwing,
           "org.scala-lang" % "scala3-library_3" % versions.scalaVersion,
-          "org.typelevel" % "cats-effect_3" % versions.catsEffect,
           "org.scalatest" %% "scalatest" % versions.scalaTest % Test
         ),
       library.jvm / packageMethod := PackagingMethod.MergeIntoParent(),

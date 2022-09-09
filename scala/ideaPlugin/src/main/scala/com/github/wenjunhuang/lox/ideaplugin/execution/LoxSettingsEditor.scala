@@ -13,19 +13,19 @@ import com.intellij.uiDesigner.core.{GridConstraints, GridLayoutManager, Spacer}
 
 import java.awt.event.{ActionEvent, ActionListener}
 import javax.swing.{JComponent, JLabel, JPanel}
-import scala.swing.GridPanel
 
-class LoxSettingsEditor(project:Project) extends SettingsEditor[LoxRunConfiguration]:
+class LoxSettingsEditor(project: Project) extends SettingsEditor[LoxRunConfiguration]:
   import LoxSettingsEditor.*
 
   private lazy val scriptName: LabeledComponent[TextFieldWithBrowseButton] =
     pojoBuilder[LabeledComponent[TextFieldWithBrowseButton]] {
-      text := "Script Name2"
+      text      := "Script Name2"
       component := new TextFieldWithBrowseButton():
         addBrowseFolderListener("Lox Source File",
-          "Please choose a lox source file",
-          project,
-          FileChooserDescriptorFactory.createSingleFileDescriptor(LoxFileType))
+                                "Please choose a lox source file",
+                                project,
+                                FileChooserDescriptorFactory.createSingleFileDescriptor(LoxFileType)
+        )
 
     }
 
@@ -34,12 +34,12 @@ class LoxSettingsEditor(project:Project) extends SettingsEditor[LoxRunConfigurat
     add(
       scriptName,
       pojoBuilder[GridConstraints] {
-        row := 0
-        column := 0
-        anchor := GridConstraints.ANCHOR_WEST
-        fill := GridConstraints.FILL_HORIZONTAL
-        vSizePolicy := GridConstraints.SIZEPOLICY_CAN_GROW | GridConstraints.SIZEPOLICY_CAN_SHRINK
-        hSizePolicy := GridConstraints.SIZEPOLICY_FIXED
+        row             := 0
+        column          := 0
+        anchor          := GridConstraints.ANCHOR_WEST
+        fill            := GridConstraints.FILL_HORIZONTAL
+        vSizePolicy     := GridConstraints.SIZEPOLICY_CAN_GROW | GridConstraints.SIZEPOLICY_CAN_SHRINK
+        hSizePolicy     := GridConstraints.SIZEPOLICY_FIXED
         useParentLayout := false
       }
     )
@@ -47,12 +47,12 @@ class LoxSettingsEditor(project:Project) extends SettingsEditor[LoxRunConfigurat
     add(
       Spacer(),
       pojoBuilder[GridConstraints] {
-        row := 1
-        column := 0
-        anchor := GridConstraints.ANCHOR_CENTER
-        fill := GridConstraints.FILL_VERTICAL | GridConstraints.FILL_HORIZONTAL
-        vSizePolicy := GridConstraints.SIZEPOLICY_WANT_GROW
-        hSizePolicy := GridConstraints.SIZEPOLICY_CAN_GROW | GridConstraints.SIZEPOLICY_CAN_SHRINK
+        row             := 1
+        column          := 0
+        anchor          := GridConstraints.ANCHOR_CENTER
+        fill            := GridConstraints.FILL_VERTICAL | GridConstraints.FILL_HORIZONTAL
+        vSizePolicy     := GridConstraints.SIZEPOLICY_WANT_GROW
+        hSizePolicy     := GridConstraints.SIZEPOLICY_CAN_GROW | GridConstraints.SIZEPOLICY_CAN_SHRINK
         useParentLayout := false
       }
     )
