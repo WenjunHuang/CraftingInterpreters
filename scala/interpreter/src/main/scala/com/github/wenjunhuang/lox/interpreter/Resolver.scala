@@ -78,7 +78,7 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
     if statement.expression.isDefined then
       resolve(statement.expression.get)
 
-  private def resolve(statements: Seq[Statement]): Unit =
+  def resolve(statements: Seq[Statement]): Unit =
     statements.foreach(resolve)
 
   private def resolve(statement: Statement): Unit = statement.accept(this)

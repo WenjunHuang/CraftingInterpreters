@@ -108,7 +108,9 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
 
   override def visitAssignment(expr: Expression.Assign): Value =
     val value = evaluate(expr.value)
-    environment.assign(expr.name, value)
+    locals.get(expr) match
+      case Some(distance) => environment.assignAt(distance, expr.name, value)
+      case _=> environment.assign(expr.name, value)
     value
 
   override def visitBlockStatement(statement: Statement.Block): Unit =

@@ -48,7 +48,10 @@ object Program:
     val tokens = Scanner(source).scanTokens()
     val expression = Parser(tokens).parse()
     expression match
-      case Right(expr) => interpreter.interpret(expr)
+      case Right(expr) =>
+        val resolver = Resolver(interpreter)
+        resolver.resolve(expr)
+        interpreter.interpret(expr)
       case Left(error) => error.printStackTrace()
 
   private def run(interpreter: Interpreter, buffer: mutable.Buffer[String])(source: String): Unit =

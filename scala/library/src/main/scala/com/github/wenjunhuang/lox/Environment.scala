@@ -20,6 +20,10 @@ class Environment private (val enclosing: Option[Environment] = None):
       case None    => throw new RuntimeError(name, s"Undefined variable '${name}'.")
     case _    =>
 
+  def assignAt(depth: Int, name: Token, value: Value): Unit =
+    if depth == 0 then values(name.lexeme) = value
+    else enclosing.foreach(_.assignAt(depth - 1, name, value))
+
   def getAt(name: Token, depth: Int): Option[Value] =
     if depth == 0 then values.get(name.lexeme)
     else enclosing.flatMap(_.getAt(name, depth - 1))
