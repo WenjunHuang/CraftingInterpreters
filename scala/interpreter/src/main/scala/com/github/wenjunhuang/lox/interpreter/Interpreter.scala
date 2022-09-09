@@ -4,11 +4,12 @@ import com.github.wenjunhuang.lox.*
 
 import java.io.PrintStream
 
-class Interpreter(output:PrintStream) extends ExprVisitor with StatementVisitor:
+class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor:
   import TokenType.*
   import Value.*
 
   private var environment = Environment.Global
+  private var locals      = Map.empty[Expression, Int]
 
   Environment.Global.define(
     "clock",
@@ -27,42 +28,42 @@ class Interpreter(output:PrintStream) extends ExprVisitor with StatementVisitor:
   override def visitUnary(expr: Expression.Unary): Value =
     val right = evaluate(expr.right)
     expr.operator.tt match
-      case TokenType.MINUS =>
-        checkNumberOperand(expr.operator, right, it => NumericValue(-it))
-      case TokenType.BANG =>
-        BooleanValue(!isTruthy(right))
-      case _ =>
-        NoValue
+    case TokenType.MINUS =>
+      checkNumberOperand(expr.operator, right, it => NumericValue(-it))
+    case TokenType.BANG  =>
+      BooleanValue(!isTruthy(right))
+    case _               =>
+      NoValue
 
   override def visitBinaryExpr(expr: Expression.Binary): Value =
-    val left = evaluate(expr.left)
+    val left  = evaluate(expr.left)
     val right = evaluate(expr.right)
     expr.operator.tt match
-      case TokenType.MINUS =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => NumericValue(a - b))
-      case TokenType.PLUS =>
-        (left, right) match
-          case (NumericValue(l), NumericValue(r)) => NumericValue(l + r)
-          case (StringValue(l), StringValue(r))   => StringValue(l + r)
-          case _                                  => NoValue
-      case TokenType.SLASH =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => NumericValue(a / b))
-      case TokenType.STAR =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => NumericValue(a * b))
-      case GREATER =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a > b))
-      case GREATER_EQUAL =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a >= b))
-      case LESS =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a < b))
-      case LESS_EQUAL =>
-        checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a <= b))
-      case BANG_EQUAL =>
-        BooleanValue(left != right)
-      case EQUAL_EQUAL =>
-        BooleanValue(left == right)
-      case _ =>
-        NoValue
+    case TokenType.MINUS =>
+      checkNumberOperands(expr.operator, left, right, (a, b) => NumericValue(a - b))
+    case TokenType.PLUS  =>
+      (left, right) match
+      case (NumericValue(l), NumericValue(r)) => NumericValue(l + r)
+      case (StringValue(l), StringValue(r))   => StringValue(l + r)
+      case _                                  => NoValue
+    case TokenType.SLASH =>
+      checkNumberOperands(expr.operator, left, right, (a, b) => NumericValue(a / b))
+    case TokenType.STAR  =>
+      checkNumberOperands(expr.operator, left, right, (a, b) => NumericValue(a * b))
+    case GREATER         =>
+      checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a > b))
+    case GREATER_EQUAL   =>
+      checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a >= b))
+    case LESS            =>
+      checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a < b))
+    case LESS_EQUAL      =>
+      checkNumberOperands(expr.operator, left, right, (a, b) => BooleanValue(a <= b))
+    case BANG_EQUAL      =>
+      BooleanValue(left != right)
+    case EQUAL_EQUAL     =>
+      BooleanValue(left == right)
+    case _               =>
+      NoValue
 
   override def visitGroupExpr(expr: Expression.Grouping): Value =
     evaluate(expr.expression)
@@ -71,19 +72,19 @@ class Interpreter(output:PrintStream) extends ExprVisitor with StatementVisitor:
 
   private def isTruthy(value: Value): Boolean =
     value match
-      case BooleanValue(v) => v
-      case NoValue         => false
-      case _               => true
+    case BooleanValue(v) => v
+    case NoValue         => false
+    case _               => true
 
   private def checkNumberOperand[T](operator: Token, operand: Value, func: Double => T): T =
     operand match
-      case NumericValue(v: Double) => func(v)
-      case _                       => throw new RuntimeError(operator, "Operand must be number.")
+    case NumericValue(v: Double) => func(v)
+    case _                       => throw new RuntimeError(operator, "Operand must be number.")
 
   private def checkNumberOperands[T](operator: Token, left: Value, right: Value, func: (Double, Double) => T): T =
     (left, right) match
-      case (NumericValue(l), NumericValue(r)) => func(l, r)
-      case _                                  => throw new RuntimeError(operator, "Operands must be numbers.")
+    case (NumericValue(l), NumericValue(r)) => func(l, r)
+    case _                                  => throw new RuntimeError(operator, "Operands must be numbers.")
 
   override def visitExpressionStatement(statement: Statement.Expr): Unit =
     evaluate(statement.expression)
@@ -95,13 +96,13 @@ class Interpreter(output:PrintStream) extends ExprVisitor with StatementVisitor:
     ()
 
   override def visitVariable(expr: Expression.Variable): Value =
-    environment.get(expr.name)
+    lookUpVariable(expr.name, expr).getOrElse(Value.NoValue)
 
   override def visitVarStatement(statement: Statement.Var): Unit =
     val value = statement.initializer match
-      case Some(initializer) =>
-        evaluate(initializer)
-      case None => NoValue
+    case Some(initializer) =>
+      evaluate(initializer)
+    case None              => NoValue
 
     environment.define(statement.name.lexeme, value)
 
@@ -124,21 +125,21 @@ class Interpreter(output:PrintStream) extends ExprVisitor with StatementVisitor:
     if isTruthy(evaluate(statement.condition)) then execute(statement.thenBranch)
     else
       statement.elseBranch match
-        case Some(stmt) => execute(stmt)
-        case None       =>
+      case Some(stmt) => execute(stmt)
+      case None       =>
 
   private def execute(statement: Statement): Unit = statement.accept(this)
 
   override def visitLogical(expr: Expression.Logical): Value =
     val left = evaluate(expr.left)
     expr.operator.tt match
-      case TokenType.OR =>
-        if isTruthy(left) then left else evaluate(expr.right)
-      case TokenType.AND =>
-        if isTruthy(left) then evaluate(expr.right) else left
-      case _ =>
-        Lox.runtimeError(new RuntimeError(expr.operator, "Invalid logical operator."))
-        NoValue
+    case TokenType.OR  =>
+      if isTruthy(left) then left else evaluate(expr.right)
+    case TokenType.AND =>
+      if isTruthy(left) then evaluate(expr.right) else left
+    case _             =>
+      Lox.runtimeError(new RuntimeError(expr.operator, "Invalid logical operator."))
+      NoValue
 
   override def visitWhileStatement(statement: Statement.While): Unit =
     while isTruthy(evaluate(statement.condition)) do execute(statement.body)
@@ -147,12 +148,12 @@ class Interpreter(output:PrintStream) extends ExprVisitor with StatementVisitor:
     val callee = evaluate(expr.callee)
 
     callee match
-      case Value.CallableValue(_, body) =>
-        val arguments = expr.arguments.map(evaluate)
-        body(arguments)
-      case _ =>
-        Lox.runtimeError(new RuntimeError(expr.paren, "Can only call functions and classes."))
-        NoValue
+    case Value.CallableValue(_, body) =>
+      val arguments = expr.arguments.map(evaluate)
+      body(arguments)
+    case _                            =>
+      Lox.runtimeError(new RuntimeError(expr.paren, "Can only call functions and classes."))
+      NoValue
 
   override def visitFunctionStatement(statement: Statement.Func): Unit =
     val currentEnvironment = environment
@@ -175,8 +176,16 @@ class Interpreter(output:PrintStream) extends ExprVisitor with StatementVisitor:
 
   override def visitReturnStatement(statement: Statement.Return): Unit =
     val value = statement.expression match
-      case Some(v) => evaluate(v)
-      case None    => NoValue
+    case Some(v) => evaluate(v)
+    case None    => NoValue
     throw Return(value)
+
+  def resolve(expression: Expression, depth: Int): Unit =
+    locals = locals + (expression -> depth)
+
+  private def lookUpVariable(name: Token, expr: Expression) =
+    locals.get(expr) match
+    case Some(depth) => environment.getAt(name, depth)
+    case None        => Some(environment.get(name))
 
 end Interpreter

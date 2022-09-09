@@ -20,4 +20,5 @@ enum Expression:
       case g: Grouping => visitor.visitGroupExpr(g)
       case v: Variable => visitor.visitVariable(v)
       case c: Call     => visitor.visitCall(c)
-    end match
+
+end Expression

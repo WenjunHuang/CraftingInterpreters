@@ -21,8 +21,8 @@ object TutorialApp:
   def onTextChange(e: ReactEventFromInput): Callback =
     Callback.log(s"Value received = ${e.target.value}")
 
-  val loggedInUser: Option[User] = Some(User(1, "huangwenjun"))
-  val hasGreen = true
+  val loggedInUser: Option[User]      = Some(User(1, "huangwenjun"))
+  val hasGreen                        = true
   def main(args: Array[String]): Unit =
     ScalaComponent
       .builder[Unit]
@@ -30,7 +30,8 @@ object TutorialApp:
         <.div(
           <.h3(
             (^.color := "green").when(hasGreen),
-            "Welcome"),
+            "Welcome"
+          ),
           loggedInUser.whenDefined(user =>
             TagMod(
               ^.cls := "user-logged-in",

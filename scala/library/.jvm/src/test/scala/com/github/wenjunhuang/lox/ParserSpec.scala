@@ -88,15 +88,14 @@ class ParserSpec extends AnyFlatSpec with Matchers:
   it should "parse a return statement" in {
     import Value.*
     val tokens = Vector(
-      Token(TokenType.RETURN,"return",NoValue,1),
-      Token(TokenType.NUMBER,"1",NumericValue(1.0),1),
-      Token(TokenType.SEMICOLON,";",NoValue,1),
-      Token(TokenType.EOF,"",NoValue,1)
+      Token(TokenType.RETURN, "return", NoValue, 1),
+      Token(TokenType.NUMBER, "1", NumericValue(1.0), 1),
+      Token(TokenType.SEMICOLON, ";", NoValue, 1),
+      Token(TokenType.EOF, "", NoValue, 1)
     )
     val parser = Parser(tokens)
     val result = parser.parse()
     result.value.size should be(1)
   }
-
 
 end ParserSpec
