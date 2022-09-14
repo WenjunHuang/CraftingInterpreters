@@ -26,7 +26,7 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
     Value.NoValue
 
   override def visitVariable(expr: Expression.Variable): Value =
-    if scopes.nonEmpty && !scopes.top(expr.name.lexeme) then
+    if scopes.nonEmpty && scopes.top.get(expr.name.lexeme).contains(false) then
       Lox.error(expr.name, "Cannot read local variable in its own initializer.")
 
     resolveLocal(expr, expr.name)
@@ -101,11 +101,10 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
     scopes.top(name.lexeme) = true
 
   private def resolveLocal(expression: Expression, token: Token): Unit =
-    scopes.reverseIterator
-      .drop(1)
+    scopes
       .zipWithIndex
       .collectFirst { case (scope, index) if scope.contains(token.lexeme) => (scope, index) }
-      .foreach { case (scope, index) => interpreter.resolve(expression,index) }
+      .foreach { case (scope, index) => interpreter.resolve(expression, index) }
 
   private def resolveFunction(func: Statement.Func) =
     beginScope()

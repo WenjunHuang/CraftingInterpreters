@@ -87,7 +87,6 @@ lazy val ideaPlugin =
     .settings(
       packageMethod := PackagingMethod.Standalone(),
       Global / intellijAttachSources := true,
-      Compile / javacOptions ++= "--release" :: "11" :: Nil,
       intellijPlugins ++= Seq(
         "org.intellij.intelliLang".toPlugin,
         "com.intellij.platform.images".toPlugin

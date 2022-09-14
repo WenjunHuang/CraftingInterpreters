@@ -11,18 +11,16 @@ import scala.util.{Try, Using}
 object Program:
   def main(args: Array[String]): Unit =
     val source = """
-                   |fun makeCounter(){
-                   |var i = 0;
-                   |fun count(){
-                   |i = i + 1;
+                   |var i = 1;
+                   |var a = i;
                    |print i;
+                   |print a;
+                   |{
+                   |var a = 2;
+                   |print a;
                    |}
-                   |return count;
-                   |}
-                   |
-                   |var counter = makeCounter();
-                   |counter();
-                   |counter();
+                   |a = 3;
+                   |print a;
                    |
                    |""".stripMargin
     Lox.output = Console.out

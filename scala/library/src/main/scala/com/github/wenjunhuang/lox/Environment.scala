@@ -6,19 +6,19 @@ class Environment private (val enclosing: Option[Environment] = None):
     values(name) = value
 
   def get(name: Token): Value = values.get(name.lexeme) match
-  case Some(value) => value
-  case None        =>
-    enclosing match
-    case Some(e) => e.get(name)
-    case None    => throw new RuntimeError(name, s"Undefined variable '${name.lexeme}'.")
+    case Some(value) => value
+    case None        =>
+      enclosing match
+        case Some(e) => e.get(name)
+        case None    => throw new RuntimeError(name, s"Undefined variable '${name.lexeme}'.")
 
   def assign(name: Token, value: Value): Unit =
     values.updateWith(name.lexeme)(_.map(_ => value)) match
-    case None =>
-      enclosing match
-      case Some(e) => e.assign(name, value)
-      case None    => throw new RuntimeError(name, s"Undefined variable '${name}'.")
-    case _    =>
+      case None =>
+        enclosing match
+          case Some(e) => e.assign(name, value)
+          case None    => throw new RuntimeError(name, s"Undefined variable '${name}'.")
+      case _    =>
 
   def assignAt(depth: Int, name: Token, value: Value): Unit =
     if depth == 0 then values(name.lexeme) = value
