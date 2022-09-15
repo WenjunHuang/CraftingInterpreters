@@ -2,6 +2,7 @@ package com.github.wenjunhuang.lox
 import scala.collection.mutable
 class Environment private (val enclosing: Option[Environment] = None):
   private val values                           = mutable.Map[String, Value]()
+
   def define(name: String, value: Value): Unit =
     values(name) = value
 

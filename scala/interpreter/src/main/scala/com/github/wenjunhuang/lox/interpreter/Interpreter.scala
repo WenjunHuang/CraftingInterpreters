@@ -23,6 +23,14 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
     try for stm <- statements do execute(stm)
     catch case error: RuntimeError => Lox.runtimeError(error)
 
+  override def visitGet(expr: Expression.Get): Value =
+    val obj = evaluate(expr.obj)
+    obj match
+      case Value.InstanceValue(_, fields) =>
+        fields.getOrElse(expr.name.lexeme, throw RuntimeError(expr.name, s"Undefined property '${expr.name.lexeme}'."))
+      case _                              =>
+        throw new RuntimeError(expr.name, "Only instances have properties.")
+
   override def visitLiteral(expr: Expression.Literal): Value = expr.value
 
   override def visitUnary(expr: Expression.Unary): Value =
@@ -106,6 +114,10 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
 
     environment.define(statement.name.lexeme, value)
 
+  override def visitClassStatement(statement: Statement.Class): Unit =
+    val classValue = Value.ClassValue(statement.name.lexeme)
+    environment.define(statement.name.lexeme, classValue)
+
   override def visitAssignment(expr: Expression.Assign): Value =
     val value = evaluate(expr.value)
     locals.get(expr) match
@@ -153,6 +165,7 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
       case Value.CallableValue(_, body) =>
         val arguments = expr.arguments.map(evaluate)
         body(arguments)
+      case Value.ClassValue(_, body)    => ???
       case _                            =>
         Lox.runtimeError(new RuntimeError(expr.paren, "Can only call functions and classes."))
         NoValue

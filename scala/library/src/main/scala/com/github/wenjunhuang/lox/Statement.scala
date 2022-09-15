@@ -9,6 +9,7 @@ enum Statement:
   case While(condition: Expression, body: Statement)
   case Block(statements: Vector[Statement])
   case Func(name: Token, params: Vector[Token], body: Block)
+  case Class(name: Token, methods: Vector[Statement.Func])
 
   def accept(visitor: StatementVisitor): Unit = this match
     case v: Var           => visitor.visitVarStatement(v)
@@ -19,5 +20,6 @@ enum Statement:
     case whileStmt: While => visitor.visitWhileStatement(whileStmt)
     case func: Func       => visitor.visitFunctionStatement(func)
     case rtn: Return      => visitor.visitReturnStatement(rtn)
+    case c: Class         => visitor.visitClassStatement(c)
 
 end Statement

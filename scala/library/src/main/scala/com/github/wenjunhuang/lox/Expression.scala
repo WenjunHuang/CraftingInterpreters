@@ -9,6 +9,7 @@ enum Expression:
   case Call(callee: Expression, paren: Token, arguments: Vector[Expression])
   case Grouping(expression: Expression)
   case Variable(name: Token)
+  case Get(obj: Expression, name: Token)
 
   def accept(visitor: ExprVisitor): Value =
     this match

@@ -23,6 +23,7 @@ class Parser(private val tokens: Vector[Token]):
   private def declaration(): Option[Statement] =
     try
       if matching(TokenType.VAR) then Some(varDeclaration())
+      else if matching(TokenType.CLASS) then Some(classDeclaration())
       else if matching(TokenType.FUN) then Some(function(FunKind.Function))
       else Some(statement())
     catch
@@ -30,7 +31,20 @@ class Parser(private val tokens: Vector[Token]):
         synchronize()
         None
 
-  private def function(kind: FunKind): Statement =
+  private def classDeclaration(): Statement.Class =
+    val name = consume(IDENTIFIER, "Expect class name.")
+
+    consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
+
+    val methods = mutable.Buffer[Statement.Func]()
+    if !check(TokenType.RIGHT_BRACE) then
+      while !check(TokenType.RIGHT_BRACE) do
+        methods += function(FunKind.Method)
+    consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.")
+
+    Statement.Class(name, methods.toVector)
+
+  private def function(kind: FunKind): Statement.Func =
     val name = consume(TokenType.IDENTIFIER, s"Expect $kind name.")
     consume(TokenType.LEFT_PAREN, s"Expect '(' after $kind name.")
 
@@ -47,7 +61,7 @@ class Parser(private val tokens: Vector[Token]):
 
     Statement.Func(name, parameters.toVector, Statement.Block(body))
 
-  private def varDeclaration(): Statement =
+  private def varDeclaration(): Statement.Var =
     val name = consume(TokenType.IDENTIFIER, "Expect variable name.")
     if matching(TokenType.EQUAL) then
       val initializer = expression()
@@ -67,15 +81,15 @@ class Parser(private val tokens: Vector[Token]):
     else if matching(TokenType.LEFT_BRACE) then Statement.Block(block())
     else expressionStatement()
 
-  private def returnStatement(): Statement =
-    inline def keyword = previous
+  private def returnStatement(): Statement.Return =
+    inline def keyword          = previous
     inline def endWithSemicolon = !check(TokenType.SEMICOLON)
 
     val value = if endWithSemicolon then Some(expression()) else None
     consume(TokenType.SEMICOLON, "Expect ';' after return value.")
     Statement.Return(keyword, value)
 
-  private def forStatement(): Statement =
+  private def forStatement() =
     consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.")
     val initializer =
       if matching(TokenType.SEMICOLON) then None
@@ -114,7 +128,7 @@ class Parser(private val tokens: Vector[Token]):
     consume(TokenType.LEFT_PAREN, "Expect '(' after 'while'.")
     val condition = expression()
     consume(TokenType.RIGHT_PAREN, "Expect ')' after condition.")
-    val body = statement()
+    val body      = statement()
     Statement.While(condition, body)
 
   private def ifStatement(): Statement =
@@ -129,7 +143,7 @@ class Parser(private val tokens: Vector[Token]):
 
     Statement.If(condition, thenBranch, elseBranch)
 
-  private def block(): Vector[Statement] =
+  private def block(): Vector[Statement]       =
     val statements = mutable.Buffer[Statement]()
     while !check(TokenType.RIGHT_BRACE) && !isAtEnd do
       declaration() match
@@ -156,25 +170,25 @@ class Parser(private val tokens: Vector[Token]):
         case Expression.Variable(name) =>
           val value = assignment()
           Expression.Assign(name, value)
-        case _ =>
+        case _                         =>
           error(previous, "Invalid assignment target.")
           expr
     else expr
 
-  private def or(): Expression =
+  private def or(): Expression  =
     LazyList
       .continually(())
       .takeWhile(_ => matching(TokenType.OR))
       .foldLeft(and()) { (accum, _) =>
         val operator = previous
-        val right = and()
+        val right    = and()
         Expression.Logical(accum, operator, right)
       }
   private def and(): Expression =
     var expr = equality()
     while matching(TokenType.AND) do
       val operator = previous
-      val right = equality()
+      val right    = equality()
       expr = Expression.Logical(expr, operator, right)
     expr
 
@@ -182,7 +196,7 @@ class Parser(private val tokens: Vector[Token]):
     var expr = comparison()
     while matching(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL) do
       val operator = previous
-      val right = comparison()
+      val right    = comparison()
       expr = Expression.Binary(expr, operator, right)
     expr
 
@@ -190,7 +204,7 @@ class Parser(private val tokens: Vector[Token]):
     var expr = term()
     while matching(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) do
       val operator = previous
-      val right = term()
+      val right    = term()
       expr = Expression.Binary(expr, operator, right)
     expr
 
@@ -198,7 +212,7 @@ class Parser(private val tokens: Vector[Token]):
     var expr = factor()
     while matching(PLUS, MINUS) do
       val operator = previous
-      val right = factor()
+      val right    = factor()
       expr = Expression.Binary(expr, operator, right)
     expr
 
@@ -206,14 +220,14 @@ class Parser(private val tokens: Vector[Token]):
     var expr = unary()
     while matching(SLASH, STAR) do
       val operator = previous
-      val right = unary()
+      val right    = unary()
       expr = Expression.Binary(expr, operator, right)
     expr
 
   private def unary(): Expression =
     if matching(BANG, MINUS) then
       val operator = previous
-      val right = unary()
+      val right    = unary()
       Expression.Unary(operator, right)
     else call()
 
@@ -221,21 +235,31 @@ class Parser(private val tokens: Vector[Token]):
     val expr = primary()
     LazyList
       .continually(())
-      .takeWhile(_ => matching(TokenType.LEFT_PAREN))
+      .takeWhile(_ => matching(TokenType.LEFT_PAREN) || matching(TokenType.DOT))
       .foldLeft(expr) { (accum, _) =>
-        val arguments = mutable.Buffer[Expression]()
-
-        if !check(TokenType.RIGHT_PAREN) then
-          while !check(TokenType.RIGHT_PAREN) do
-            arguments += expression()
-            if !check(TokenType.RIGHT_PAREN) then consume(TokenType.COMMA, "Expect ',' after value.")
-
-        val paren = consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.")
-
-        if arguments.length >= 255 then error(peek, "Can't have move than 255 arguments.")
-
-        Expression.Call(accum, paren, arguments.toVector)
+        previous.tt match
+          case TokenType.LEFT_PAREN =>
+            finishCall(accum)
+          case TokenType.DOT        =>
+            val name = consume(TokenType.IDENTIFIER, "Expect property name after '.'.")
+            Expression.Get(accum, name)
+          case _                    =>
+            assert(false, "Should not reach here")
       }
+
+  private def finishCall(accum: Expression) =
+    val arguments = mutable.Buffer[Expression]()
+
+    if !check(TokenType.RIGHT_PAREN) then
+      while !check(TokenType.RIGHT_PAREN) do
+        arguments += expression()
+        if !check(TokenType.RIGHT_PAREN) then consume(TokenType.COMMA, "Expect ',' after value.")
+
+    val paren = consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.")
+
+    if arguments.length >= 255 then error(peek, "Can't have move than 255 arguments.")
+
+    Expression.Call(accum, paren, arguments.toVector)
 
   private def primary(): Expression =
     if matching(FALSE) then Expression.Literal(BooleanValue(false))

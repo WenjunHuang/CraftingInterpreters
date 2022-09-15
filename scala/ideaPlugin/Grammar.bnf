@@ -50,6 +50,7 @@ RETURN = 'return'
 SUPER = 'super'
 THIS = 'this'
 VAR = 'var'
+CLASS = 'class'
 
 ]
 
@@ -58,7 +59,8 @@ extends(".*Stmt") = statement
 }
 
 program ::= declaration *
-declaration ::= funDecl | varDecl | statement
+declaration ::= classDecl | funDecl | varDecl | statement
+classDecl ::= "class" IDENTIFIER "{" function* "}"
 funDecl ::= "fun" function
 function ::= IDENTIFIER "(" parameters? ")" blockStmt
 parameters ::= IDENTIFIER ("," IDENTIFIER)*
@@ -73,7 +75,7 @@ exprStmt ::= expression ";"
 forStmt ::= "for" "(" (varDecl | exprStmt |";") expression? ";" expression? ")" statement
 
 expression ::= assignmentExpr
-assignmentExpr ::= IDENTIFIER '=' assignmentExpr | logicOrExpr
+assignmentExpr ::= (callExpr ".")? IDENTIFIER '=' assignmentExpr | logicOrExpr
 logicOrExpr ::= logicAndExpr ('or' logicAndExpr)*
 logicAndExpr ::= equalityExpr ('and' equalityExpr)*
 equalityExpr ::= comparisonExpr (('!=' | '==') comparisonExpr)*
@@ -81,6 +83,6 @@ comparisonExpr ::= termExpr (('>'|'>='|'<'|'<=') termExpr)*
 termExpr ::= factorExpr (( '-'|'+') factorExpr)*
 factorExpr ::= unaryExpr (('/'|'*') unaryExpr)*
 unaryExpr ::= ('!'|'-') unaryExpr | callExpr
-callExpr ::= primaryExpr ("(" arguments? ")")*
+callExpr ::= primaryExpr (("(" arguments? ")") | "." IDENTIFIER)*
 arguments ::= expression ("," expression)*
 primaryExpr ::= NUMBER | STRING | 'true' | 'false' | 'nil' | '(' expression ')' | IDENTIFIER

@@ -3,9 +3,15 @@ package com.github.wenjunhuang.lox.interpreter
 import com.github.wenjunhuang.lox.*
 
 import scala.collection.mutable
+import scala.util.Using
+import scala.util.Using.Releasable
 
 class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisitor:
   override def visitLiteral(expr: Expression.Literal): Value = Value.NoValue
+
+  override def visitGet(expr: Expression.Get): Value =
+    resolve(expr.obj)
+    Value.NoValue
 
   override def visitUnary(expr: Expression.Unary): Value =
     resolve(expr.right)
@@ -69,12 +75,19 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
     resolve(statement.condition)
     resolve(statement.body)
 
+  override def visitClassStatement(statement: Statement.Class): Unit =
+    declare(statement.name)
+    define(statement.name)
+
   override def visitFunctionStatement(statement: Statement.Func): Unit =
     declare(statement.name)
     define(statement.name)
-    resolveFunction(statement)
+    resolveFunction(statement, FunctionType.Function)
 
   override def visitReturnStatement(statement: Statement.Return): Unit =
+    if currentFunction == FunctionType.None then
+      Lox.error(statement.keyword, "Cannot return from top-level code.")
+
     if statement.expression.isDefined then
       resolve(statement.expression.get)
 
@@ -85,8 +98,9 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
 
   private def resolve(expr: Expression): Unit = expr.accept(this)
 
-  private def beginScope(): Unit =
+  private def beginScope(): AutoCloseable =
     scopes.push(mutable.Map.empty)
+    () => scopes.pop()
 
   private def endScope(): Unit =
     scopes.pop()
@@ -94,6 +108,8 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
   private def declare(token: Token): Unit =
     if scopes.isEmpty then return
     val scope = scopes.top
+    if scope.contains(token.lexeme) then
+      Lox.error(token, "Already a variable with this name in this scope.")
     scope(token.lexeme) = false
 
   private def define(name: Token): Unit =
@@ -106,14 +122,22 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
       .collectFirst { case (scope, index) if scope.contains(token.lexeme) => (scope, index) }
       .foreach { case (scope, index) => interpreter.resolve(expression, index) }
 
-  private def resolveFunction(func: Statement.Func) =
-    beginScope()
-    func.params.foreach { param =>
-      declare(param)
-      define(param)
+  private def resolveFunction(func: Statement.Func, functionType: FunctionType) =
+    Using(switchFunctionType(functionType)) { _ =>
+      Using(beginScope()) { _ =>
+        func.params.foreach { param =>
+          declare(param)
+          define(param)
+        }
+        resolve(func.body)
+      }
     }
-    resolve(func.body)
-    endScope()
 
-  private val scopes = mutable.Stack[mutable.Map[String, Boolean]]()
+  private def switchFunctionType(functionType: FunctionType): AutoCloseable =
+    val enclosingFunction = currentFunction
+    currentFunction = functionType
+    () => currentFunction = enclosingFunction
+
+  private val scopes          = mutable.Stack[mutable.Map[String, Boolean]]()
+  private var currentFunction = FunctionType.None
 end Resolver
