@@ -9,6 +9,11 @@ import scala.util.Using.Releasable
 class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisitor:
   override def visitLiteral(expr: Expression.Literal): Value = Value.NoValue
 
+  override def visitSet(expr: Expression.Set): Value =
+    resolve(expr.value)
+    resolve(expr.obj)
+    Value.NoValue
+
   override def visitGet(expr: Expression.Get): Value =
     resolve(expr.obj)
     Value.NoValue
@@ -78,6 +83,8 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
   override def visitClassStatement(statement: Statement.Class): Unit =
     declare(statement.name)
     define(statement.name)
+    
+    statement.methods.foreach(resolveFunction(_, FunctionType.Method))
 
   override def visitFunctionStatement(statement: Statement.Func): Unit =
     declare(statement.name)

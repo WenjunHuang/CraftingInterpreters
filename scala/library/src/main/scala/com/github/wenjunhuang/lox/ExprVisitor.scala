@@ -12,4 +12,5 @@ trait ExprVisitor:
   def visitLogical(expr: Logical): Value
   def visitGet(expr: Get): Value
   def visitCall(expr: Call): Value
+  def visitSet(expr: Set): Value
 end ExprVisitor

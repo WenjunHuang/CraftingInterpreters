@@ -116,6 +116,10 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
 
   override def visitClassStatement(statement: Statement.Class): Unit =
     val classValue = Value.ClassValue(statement.name.lexeme)
+    statement.methods.map{func=>
+        val funcValue = Value.FunctionValue(func, environment, func.name.lexeme == "init")
+        classValue.methods += func.name.lexeme -> funcValue
+    }
     environment.define(statement.name.lexeme, classValue)
 
   override def visitAssignment(expr: Expression.Assign): Value =
@@ -165,7 +169,7 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
       case Value.CallableValue(_, body) =>
         val arguments = expr.arguments.map(evaluate)
         body(arguments)
-      case Value.ClassValue(_, body)    => ???
+      case Value.ClassValue(_)          => ???
       case _                            =>
         Lox.runtimeError(new RuntimeError(expr.paren, "Can only call functions and classes."))
         NoValue
@@ -203,4 +207,13 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
       case Some(depth) => environment.getAt(name, depth)
       case None        => Some(Environment.Global.get(name))
 
+  override def visitSet(expr: Expression.Set): Value =
+    val obj = evaluate(expr.obj)
+    obj match
+      case Value.InstanceValue(_, fields) =>
+        val value = evaluate(expr.value)
+        fields.put(expr.name.lexeme, value)
+        value
+      case _                              =>
+        throw new RuntimeError(expr.name, "Only instances have fields.")
 end Interpreter

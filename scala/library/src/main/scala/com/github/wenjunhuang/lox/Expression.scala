@@ -10,6 +10,7 @@ enum Expression:
   case Grouping(expression: Expression)
   case Variable(name: Token)
   case Get(obj: Expression, name: Token)
+  case Set(obj: Expression, name: Token, value: Expression)
 
   def accept(visitor: ExprVisitor): Value =
     this match
@@ -21,5 +22,7 @@ enum Expression:
       case g: Grouping => visitor.visitGroupExpr(g)
       case v: Variable => visitor.visitVariable(v)
       case c: Call     => visitor.visitCall(c)
+      case get: Get    => visitor.visitGet(get)
+      case set: Set    => visitor.visitSet(set)
 
 end Expression

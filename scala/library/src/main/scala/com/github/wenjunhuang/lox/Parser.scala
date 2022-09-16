@@ -170,6 +170,9 @@ class Parser(private val tokens: Vector[Token]):
         case Expression.Variable(name) =>
           val value = assignment()
           Expression.Assign(name, value)
+        case Expression.Get(obj, name) =>
+          val value = assignment()
+          Expression.Set(obj, name, value)
         case _                         =>
           error(previous, "Invalid assignment target.")
           expr
