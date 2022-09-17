@@ -206,14 +206,14 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
         val arity = expr.arguments.length
         // find initializer with equal arity count
         initializers.find(_.arity == arity) match
-          case Some(initializer)  =>
+          case Some(initializer)                              =>
             val arguments                          = expr.arguments.map(evaluate)
             val instanceValue: Value.InstanceValue = Value.InstanceValue(cv, mutable.Map.empty)
             initializer.body(instanceValue, arguments)
-          case None if arity == 0 =>
+          case None if initializers.isEmpty && arity == 0 =>
             Value.InstanceValue(cv, mutable.Map.empty)
-          case _                  =>
-            Lox.runtimeError(new RuntimeError(expr.paren, "Can not find initializer with given arity."))
+          case _                                              =>
+            Lox.runtimeError(new RuntimeError(expr.paren, s"Can not find initializer with given arity of $arity"))
             NoValue
 
       case _ =>
@@ -263,5 +263,8 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
       case _                              =>
         throw new RuntimeError(expr.name, "Only instances have fields.")
 
-  override def visitThis(expr: Expression.This): Value = ???
+  override def visitThis(expr: Expression.This): Value =
+    lookUpVariable(expr.keyword, expr) match
+      case Some(value) => value
+      case None        => throw new RuntimeError(expr.keyword, "Can not use 'this' outside of a class.")
 end Interpreter

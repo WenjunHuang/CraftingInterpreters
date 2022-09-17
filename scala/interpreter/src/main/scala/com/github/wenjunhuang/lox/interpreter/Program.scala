@@ -12,16 +12,19 @@ object Program:
   def main(args: Array[String]): Unit =
     val source      = """
                    |class DenoshireCream {
+                   |init(name){
+                   |this.name = name;
+                   |}
                    |serveOn(){
                    |return "Scones";
                    |}
                    |}
-                   |var cream = DenoshireCream();
+                   |var cream = DenoshireCream("wenjun");
                    |print cream;
                    |""".stripMargin
     Lox.output = Console.out
     val interpreter = new Interpreter(Console.out)
-    runSource(interpreter, source,resolve = false)
+    runSource(interpreter, source)
 
   def runFile(file: File, output: PrintStream): Try[Unit] =
     Lox.output = output
