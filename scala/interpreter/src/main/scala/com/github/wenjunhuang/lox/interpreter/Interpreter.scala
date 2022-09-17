@@ -27,9 +27,14 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
   override def visitGet(expr: Expression.Get): Value =
     val obj = evaluate(expr.obj)
     obj match
-      case Value.InstanceValue(_, fields) =>
-        fields.getOrElse(expr.name.lexeme, throw RuntimeError(expr.name, s"Undefined property '${expr.name.lexeme}'."))
-      case _                              =>
+      case inst @ Value.InstanceValue(myClass, fields) =>
+        myClass.methods.get(expr.name.lexeme) match
+          case Some(method) => Value.FunctionValue(method.arity, params => method.body(inst, params))
+          case None         =>
+            fields.getOrElse(expr.name.lexeme,
+                             throw RuntimeError(expr.name, s"Undefined property '${expr.name.lexeme}'.")
+            )
+      case _                                           =>
         throw new RuntimeError(expr.name, "Only instances have properties.")
 
   override def visitLiteral(expr: Expression.Literal): Value = expr.value
@@ -122,11 +127,12 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
         func.params.length,
         {
           case (instance, params) =>
-            val funEnvironment = Environment(currentEnvironment)
-            funEnvironment.define("this", instance)
-            func.params.zip(params).foreach { case (param, value) => funEnvironment.define(param.lexeme, value) }
+            val thisEnv   = Environment(currentEnvironment)
+            thisEnv.define("this", instance)
+            val paramsEnv = Environment(thisEnv)
+            func.params.zip(params).foreach { case (param, value) => paramsEnv.define(param.lexeme, value) }
             try
-              executeBlock(func.body.statements, funEnvironment)
+              executeBlock(func.body.statements, Environment(paramsEnv))
               instance
             catch
               case returnValue: Return =>
@@ -140,11 +146,12 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
          func.params.length,
          {
            case (instance, params) =>
-             val funEnvironment = Environment(currentEnvironment)
-             funEnvironment.define("this", instance)
-             func.params.zip(params).foreach { case (param, value) => funEnvironment.define(param.lexeme, value) }
+             val thisEnv   = Environment(currentEnvironment)
+             thisEnv.define("this", instance)
+             val paramsEnv = Environment(thisEnv)
+             func.params.zip(params).foreach { case (param, value) => paramsEnv.define(param.lexeme, value) }
              try
-               executeBlock(func.body.statements, funEnvironment)
+               executeBlock(func.body.statements, Environment(paramsEnv))
                Value.NoValue
              catch
                case returnValue: Return =>
@@ -206,18 +213,17 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
         val arity = expr.arguments.length
         // find initializer with equal arity count
         initializers.find(_.arity == arity) match
-          case Some(initializer)                              =>
+          case Some(initializer)                          =>
             val arguments                          = expr.arguments.map(evaluate)
             val instanceValue: Value.InstanceValue = Value.InstanceValue(cv, mutable.Map.empty)
             initializer.body(instanceValue, arguments)
           case None if initializers.isEmpty && arity == 0 =>
             Value.InstanceValue(cv, mutable.Map.empty)
-          case _                                              =>
+          case _                                          =>
             Lox.runtimeError(new RuntimeError(expr.paren, s"Can not find initializer with given arity of $arity"))
             NoValue
-
-      case _ =>
-        Lox.runtimeError(new RuntimeError(expr.paren, "Can only call functions and classes."))
+      case _                                                  =>
+        Lox.runtimeError(new RuntimeError(expr.paren, "Can only call functions or classes."))
         NoValue
 
   override def visitFunctionStatement(statement: Statement.Func): Unit =
@@ -227,10 +233,10 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
       Value.FunctionValue(
         statement.params.size,
         { params =>
-          val funEnvironment = Environment(currentEnvironment)
-          statement.params.zip(params).foreach { case (param, value) => funEnvironment.define(param.lexeme, value) }
+          val paramsEnv = Environment(currentEnvironment)
+          statement.params.zip(params).foreach { case (param, value) => paramsEnv.define(param.lexeme, value) }
           try
-            executeBlock(statement.body.statements, funEnvironment)
+            executeBlock(statement.body.statements, Environment(paramsEnv))
             NoValue
           catch
             case returnValue: Return =>

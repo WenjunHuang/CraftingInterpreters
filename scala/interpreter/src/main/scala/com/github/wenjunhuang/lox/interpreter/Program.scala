@@ -15,12 +15,32 @@ object Program:
                    |init(name){
                    |this.name = name;
                    |}
+                   |init(name,greeting){
+                   |this.name = name;
+                   |this.greeting = greeting;
+                   |this.words = this.mkGreeting();
+                   |}
+                   |
+                   |mkGreeting(){
+                   |return this.greeting + " on " + this.name;
+                   |}
                    |serveOn(){
-                   |return "Scones";
+                   |return "Scones " + this.name;
                    |}
                    |}
-                   |var cream = DenoshireCream("wenjun");
-                   |print cream;
+                   |fun sayHello(name){
+                   |print  "Hello, "+name;
+                   |}
+                   |sayHello("World");
+                   |var cream = DenoshireCream("Denoshire");
+                   |print cream.name;
+                   |var result = cream.serveOn();
+                   |print result;
+                   |var funObj = cream.serveOn;
+                   |print funObj();
+                   |
+                   |var another = DenoshireCream("Denoshire","Hello");
+                   |print another.words;
                    |""".stripMargin
     Lox.output = Console.out
     val interpreter = new Interpreter(Console.out)

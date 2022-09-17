@@ -1,12 +1,15 @@
 package com.github.wenjunhuang.lox.interpreter
 
 import com.github.wenjunhuang.lox.*
+import com.github.wenjunhuang.lox.interpreter.Resolver.Scope
 
 import scala.collection.mutable
 import scala.util.Using
 import scala.util.Using.Releasable
 
 class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisitor:
+  import Resolver.*
+
   override def visitLiteral(expr: Expression.Literal): Value = Value.NoValue
 
   override def visitSet(expr: Expression.Set): Value =
@@ -83,8 +86,12 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
   override def visitClassStatement(statement: Statement.Class): Unit =
     declare(statement.name)
     define(statement.name)
-    
-    statement.methods.foreach(resolveFunction(_, FunctionType.Method))
+
+    Using(beginScope()) { scope =>
+      scope.put("this", true)
+      statement.initializers.foreach(resolveFunction(_, FunctionType.Initializer))
+      statement.methods.foreach(resolveFunction(_, FunctionType.Method))
+    }
 
   override def visitFunctionStatement(statement: Statement.Func): Unit =
     declare(statement.name)
@@ -94,6 +101,9 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
   override def visitReturnStatement(statement: Statement.Return): Unit =
     if currentFunction == FunctionType.None then
       Lox.error(statement.keyword, "Cannot return from top-level code.")
+    else if currentFunction == FunctionType.Initializer then
+      if statement.expression.isDefined then
+        Lox.error(statement.keyword, "Cannot return a value from an initializer.")
 
     if statement.expression.isDefined then
       resolve(statement.expression.get)
@@ -105,9 +115,12 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
 
   private def resolve(expr: Expression): Unit = expr.accept(this)
 
-  private def beginScope(): AutoCloseable =
-    scopes.push(mutable.Map.empty)
-    () => scopes.pop()
+  private def beginScope(): Scope =
+    val scope = new mutable.HashMap[String, Boolean] with AutoCloseable:
+      override def close(): Unit = scopes.pop()
+
+    scopes.push(scope)
+    scope
 
   private def endScope(): Unit =
     scopes.pop()
@@ -145,9 +158,14 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
     currentFunction = functionType
     () => currentFunction = enclosingFunction
 
-  override def visitThis(expr: Expression.This): Value = ???
+  override def visitThis(expr: Expression.This): Value =
+    resolveLocal(expr, expr.keyword)
+    Value.NoValue
 
   private val scopes          = mutable.Stack[mutable.Map[String, Boolean]]()
   private var currentFunction = FunctionType.None
 
+end Resolver
+object Resolver:
+  type Scope = mutable.Map[String, Boolean] with AutoCloseable
 end Resolver
