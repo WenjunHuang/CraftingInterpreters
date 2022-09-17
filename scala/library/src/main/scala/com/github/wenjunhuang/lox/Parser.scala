@@ -36,16 +36,20 @@ class Parser(private val tokens: Vector[Token]):
 
     consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
 
-    val methods = mutable.Buffer[Statement.Func]()
+    val methods      = mutable.Buffer[Statement.Func]()
+    val initializers = mutable.Buffer[Statement.Func]()
     if !check(TokenType.RIGHT_BRACE) then
       while !check(TokenType.RIGHT_BRACE) do
-        methods += function(FunKind.Method)
+        if check(TokenType.INIT) then
+          initializers += function(FunKind.Initializer, TokenType.INIT)
+        else
+          methods += function(FunKind.Method)
     consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.")
 
-    Statement.Class(name, methods.toVector)
+    Statement.Class(name, initializers.toVector, methods.toVector)
 
-  private def function(kind: FunKind): Statement.Func =
-    val name = consume(TokenType.IDENTIFIER, s"Expect $kind name.")
+  private def function(kind: FunKind, tokenType: TokenType = TokenType.IDENTIFIER): Statement.Func =
+    val name = consume(tokenType, s"Expect $kind name.")
     consume(TokenType.LEFT_PAREN, s"Expect '(' after $kind name.")
 
     val parameters = mutable.Buffer[Token]()
@@ -265,7 +269,8 @@ class Parser(private val tokens: Vector[Token]):
     Expression.Call(accum, paren, arguments.toVector)
 
   private def primary(): Expression =
-    if matching(FALSE) then Expression.Literal(BooleanValue(false))
+    if matching(THIS) then Expression.This(previous)
+    else if matching(FALSE) then Expression.Literal(BooleanValue(false))
     else if matching(TRUE) then Expression.Literal(BooleanValue(true))
     else if matching(NIL) then Expression.Literal(NoValue)
     else if matching(IDENTIFIER) then Expression.Variable(previous)

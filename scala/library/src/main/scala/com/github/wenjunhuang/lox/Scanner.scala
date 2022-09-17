@@ -137,6 +137,7 @@ object Scanner:
   val keywords: Map[String, TokenType] = Map(
     "and" -> AND,
     "class" -> CLASS,
+    "init" -> INIT,
     "else" -> ELSE,
     "false" -> FALSE,
     "for" -> FOR,

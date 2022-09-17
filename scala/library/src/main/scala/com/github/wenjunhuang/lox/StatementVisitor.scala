@@ -8,6 +8,7 @@ trait StatementVisitor:
   def visitIfStatement(statement: Statement.If): Unit
   def visitWhileStatement(statement: Statement.While): Unit
   def visitFunctionStatement(statement: Statement.Func): Unit
+//  def visitInitializerStatement(statement: Statement.I)
   def visitClassStatement(statement: Statement.Class): Unit
   def visitReturnStatement(statement: Statement.Return): Unit
 end StatementVisitor

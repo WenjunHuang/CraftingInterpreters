@@ -3,6 +3,7 @@ package com.github.wenjunhuang.lox.interpreter
 import com.github.wenjunhuang.lox.*
 
 import java.io.PrintStream
+import scala.collection.mutable
 
 class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor:
   import TokenType.*
@@ -13,7 +14,7 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
 
   Environment.Global.define(
     "clock",
-    Value.CallableValue(0,
+    Value.FunctionValue(0,
                         params =>
                           val result = System.currentTimeMillis() / 1000.0
                           NumericValue(result)
@@ -115,12 +116,44 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
     environment.define(statement.name.lexeme, value)
 
   override def visitClassStatement(statement: Statement.Class): Unit =
-    val classValue = Value.ClassValue(statement.name.lexeme)
-    statement.methods.map{func=>
-        val funcValue = Value.FunctionValue(func, environment, func.name.lexeme == "init")
-        classValue.methods += func.name.lexeme -> funcValue
+    val currentEnvironment                          = environment
+    val initalizers: Vector[Value.InitializerValue] = statement.initializers.map { func =>
+      Value.InitializerValue(
+        func.params.length,
+        {
+          case (instance, params) =>
+            val funEnvironment = Environment(currentEnvironment)
+            funEnvironment.define("this", instance)
+            func.params.zip(params).foreach { case (param, value) => funEnvironment.define(param.lexeme, value) }
+            try
+              executeBlock(func.body.statements, funEnvironment)
+              instance
+            catch
+              case returnValue: Return =>
+                instance
+        }
+      )
     }
-    environment.define(statement.name.lexeme, classValue)
+    val methods: Map[String, Value.MethodValue]     = statement.methods.map[(String, Value.MethodValue)] { func =>
+      (func.name.lexeme,
+       Value.MethodValue(
+         func.params.length,
+         {
+           case (instance, params) =>
+             val funEnvironment = Environment(currentEnvironment)
+             funEnvironment.define("this", instance)
+             func.params.zip(params).foreach { case (param, value) => funEnvironment.define(param.lexeme, value) }
+             try
+               executeBlock(func.body.statements, funEnvironment)
+               Value.NoValue
+             catch
+               case returnValue: Return =>
+                 returnValue.value
+         }
+       )
+      )
+    }.toMap
+    environment.define(statement.name.lexeme, ClassValue(statement.name.lexeme, initalizers, methods))
 
   override def visitAssignment(expr: Expression.Assign): Value =
     val value = evaluate(expr.value)
@@ -166,11 +199,24 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
     val callee = evaluate(expr.callee)
 
     callee match
-      case Value.CallableValue(_, body) =>
+      case Value.FunctionValue(_, body)                       =>
         val arguments = expr.arguments.map(evaluate)
         body(arguments)
-      case Value.ClassValue(_)          => ???
-      case _                            =>
+      case cv @ Value.ClassValue(name, initializers, methods) =>
+        val arity = expr.arguments.length
+        // find initializer with equal arity count
+        initializers.find(_.arity == arity) match
+          case Some(initializer)  =>
+            val arguments                          = expr.arguments.map(evaluate)
+            val instanceValue: Value.InstanceValue = Value.InstanceValue(cv, mutable.Map.empty)
+            initializer.body(instanceValue, arguments)
+          case None if arity == 0 =>
+            Value.InstanceValue(cv, mutable.Map.empty)
+          case _                  =>
+            Lox.runtimeError(new RuntimeError(expr.paren, "Can not find initializer with given arity."))
+            NoValue
+
+      case _ =>
         Lox.runtimeError(new RuntimeError(expr.paren, "Can only call functions and classes."))
         NoValue
 
@@ -178,7 +224,7 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
     val currentEnvironment = environment
     currentEnvironment.define(
       statement.name.lexeme,
-      Value.CallableValue(
+      Value.FunctionValue(
         statement.params.size,
         { params =>
           val funEnvironment = Environment(currentEnvironment)
@@ -216,4 +262,6 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
         value
       case _                              =>
         throw new RuntimeError(expr.name, "Only instances have fields.")
+
+  override def visitThis(expr: Expression.This): Value = ???
 end Interpreter

@@ -11,6 +11,7 @@ enum Expression:
   case Variable(name: Token)
   case Get(obj: Expression, name: Token)
   case Set(obj: Expression, name: Token, value: Expression)
+  case This(keyword: Token)
 
   def accept(visitor: ExprVisitor): Value =
     this match
@@ -24,5 +25,6 @@ enum Expression:
       case c: Call     => visitor.visitCall(c)
       case get: Get    => visitor.visitGet(get)
       case set: Set    => visitor.visitSet(set)
+      case t: This     => visitor.visitThis(t)
 
 end Expression

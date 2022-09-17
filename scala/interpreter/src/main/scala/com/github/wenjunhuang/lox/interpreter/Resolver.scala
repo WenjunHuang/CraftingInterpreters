@@ -145,6 +145,9 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
     currentFunction = functionType
     () => currentFunction = enclosingFunction
 
+  override def visitThis(expr: Expression.This): Value = ???
+
   private val scopes          = mutable.Stack[mutable.Map[String, Boolean]]()
   private var currentFunction = FunctionType.None
+
 end Resolver

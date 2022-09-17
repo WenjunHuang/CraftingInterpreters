@@ -1,7 +1,5 @@
 package com.github.wenjunhuang.lox
 
-import com.github.wenjunhuang.lox.Value.CallableValue
-
 import scala.collection.mutable
 
 enum Value:
@@ -9,8 +7,10 @@ enum Value:
   case StringValue(value: String)
   case BooleanValue(value: Boolean)
   case FunctionValue(arity: Int, body: Vector[Value] => Value)
-  case ClassValue(name: String, methods: Map[String, CallableValue])
   case InstanceValue(`class`: Value.ClassValue, fields: mutable.Map[String, Value])
+  case MethodValue(arity: Int, body: (Value.InstanceValue, Vector[Value]) => Value)
+  case InitializerValue(arity: Int, body: (Value.InstanceValue, Vector[Value]) => Value.InstanceValue)
+  case ClassValue(name: String, initializers: Vector[Value.InitializerValue], methods: Map[String, Value.MethodValue])
   case NoValue
 
   override def toString: String =
@@ -19,5 +19,8 @@ enum Value:
       case StringValue(v)          => v
       case BooleanValue(v)         => v.toString
       case FunctionValue(arity, _) => s"<function arity:$arity>"
-      case ClassValue(name)        => s"<class $name>"
+      case ClassValue(name, _, _)  => s"<class $name>"
+      case InstanceValue(k, _)     => s"<instance of ${k.name}>"
+      case InitializerValue(_, _)  => "<initializer>"
+      case MethodValue(arity, _)   => s"<method arity: $arity>"
       case NoValue                 => "nil"

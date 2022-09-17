@@ -24,6 +24,7 @@ class ScannerSpec extends AnyFlatSpec with Matchers:
     val tokenSource = List(
       "and"    -> TokenType.AND,
       "class"  -> TokenType.CLASS,
+      "init"   -> TokenType.INIT,
       "else"   -> TokenType.ELSE,
       "false"  -> TokenType.FALSE,
       "for"    -> TokenType.FOR,
@@ -84,4 +85,5 @@ class ScannerSpec extends AnyFlatSpec with Matchers:
     val tokens  = scanner.scanTokens()
     tokens.size should be(4)
   }
+
 end ScannerSpec

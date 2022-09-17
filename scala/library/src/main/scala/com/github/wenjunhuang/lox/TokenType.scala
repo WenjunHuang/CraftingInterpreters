@@ -32,6 +32,7 @@ enum TokenType:
   // Keywords
   case AND
   case CLASS
+  case INIT
   case ELSE
   case FALSE
   case FUN

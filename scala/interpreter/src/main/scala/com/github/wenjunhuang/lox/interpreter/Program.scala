@@ -16,11 +16,12 @@ object Program:
                    |return "Scones";
                    |}
                    |}
-                   |print DenoshireCream;
+                   |var cream = DenoshireCream();
+                   |print cream;
                    |""".stripMargin
     Lox.output = Console.out
     val interpreter = new Interpreter(Console.out)
-    runSource(interpreter, source)
+    runSource(interpreter, source,resolve = false)
 
   def runFile(file: File, output: PrintStream): Try[Unit] =
     Lox.output = output
@@ -37,13 +38,14 @@ object Program:
       .takeWhile(_ != null)
       .foreach(run(interpreter, buffer))
 
-  private def runSource(interpreter: Interpreter, source: String) =
+  private def runSource(interpreter: Interpreter, source: String,resolve:Boolean = true) =
     val tokens     = Scanner(source).scanTokens()
     val expression = Parser(tokens).parse()
     expression match
       case Right(expr) =>
-        val resolver = Resolver(interpreter)
-        resolver.resolve(expr)
+        if resolve then
+          val resolver = Resolver(interpreter)
+          resolver.resolve(expr)
         if !Lox.hadError then
           interpreter.interpret(expr)
       case Left(error) => error.printStackTrace()

@@ -1,9 +1,10 @@
 package com.github.wenjunhuang.lox
 import org.scalatest.EitherValues.*
+import org.scalatest.Inside
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ParserSpec extends AnyFlatSpec with Matchers:
+class ParserSpec extends AnyFlatSpec with Matchers with Inside:
   "A Parser" should "parse an empty program" in {
     val tokens = Vector(Token(TokenType.EOF, "", Value.NoValue, 1))
     val parser = Parser(tokens)
@@ -96,6 +97,45 @@ class ParserSpec extends AnyFlatSpec with Matchers:
     val parser = Parser(tokens)
     val result = parser.parse()
     result.value.size should be(1)
+    result.value.head should matchPattern {
+      case Statement.Return(_, Some(Expression.Literal(NumericValue(1.0)))) =>
+    }
+  }
+
+  it should "parse a class definition" in {
+    import Value.*
+    val tokens = Vector(
+      Token(TokenType.CLASS, "class", NoValue, 1),
+      Token(TokenType.IDENTIFIER, "ClassName", NoValue, 1),
+      Token(TokenType.LEFT_BRACE, "{", NoValue, 1),
+      Token(TokenType.INIT, "init", NoValue, 1),
+      Token(TokenType.LEFT_PAREN, "(", NoValue, 1),
+      Token(TokenType.RIGHT_PAREN, ")", NoValue, 1),
+      Token(TokenType.LEFT_BRACE, "{", NoValue, 1),
+      Token(TokenType.RIGHT_BRACE, "}", NoValue, 1),
+      Token(TokenType.IDENTIFIER, "memberFunc", NoValue, 1),
+      Token(TokenType.LEFT_PAREN, "(", NoValue, 1),
+      Token(TokenType.RIGHT_PAREN, ")", NoValue, 1),
+      Token(TokenType.LEFT_BRACE, "{", NoValue, 1),
+      Token(TokenType.RIGHT_BRACE, "}", NoValue, 1),
+      Token(TokenType.RIGHT_BRACE, "}", NoValue, 1),
+      Token(TokenType.EOF, "", NoValue, 1)
+    )
+
+    val parser = Parser(tokens)
+    val result = parser.parse()
+    result.value.size should be(1)
+    inside(result.value.head) {
+      case Statement.Class(_, initializers,methods) =>
+        initializers.length should be(1)
+        methods.length should be(1)
+        methods.head should matchPattern {
+          case Statement.Func(Token(TokenType.IDENTIFIER, "memberFunc", NoValue, 1),
+                              Vector(),
+                              Statement.Block(Vector())
+              ) =>
+        }
+    }
   }
 
 end ParserSpec
