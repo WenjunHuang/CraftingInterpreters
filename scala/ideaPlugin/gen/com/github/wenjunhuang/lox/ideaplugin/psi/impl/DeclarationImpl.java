@@ -29,6 +29,12 @@ public class DeclarationImpl extends ASTWrapperPsiElement implements Declaration
 
   @Override
   @Nullable
+  public ClassDecl getClassDecl() {
+    return findChildByClass(ClassDecl.class);
+  }
+
+  @Override
+  @Nullable
   public FunDecl getFunDecl() {
     return findChildByClass(FunDecl.class);
   }

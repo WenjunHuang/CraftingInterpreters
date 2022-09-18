@@ -12,6 +12,7 @@ public interface LoxTypes {
   IElementType ASSIGNMENT_EXPR = new LoxElementType("ASSIGNMENT_EXPR");
   IElementType BLOCK_STMT = new LoxElementType("BLOCK_STMT");
   IElementType CALL_EXPR = new LoxElementType("CALL_EXPR");
+  IElementType CLASS_DECL = new LoxElementType("CLASS_DECL");
   IElementType COMPARISON_EXPR = new LoxElementType("COMPARISON_EXPR");
   IElementType DECLARATION = new LoxElementType("DECLARATION");
   IElementType EQUALITY_EXPR = new LoxElementType("EQUALITY_EXPR");
@@ -22,6 +23,7 @@ public interface LoxTypes {
   IElementType FUNCTION = new LoxElementType("FUNCTION");
   IElementType FUN_DECL = new LoxElementType("FUN_DECL");
   IElementType IF_STMT = new LoxElementType("IF_STMT");
+  IElementType INITIALIZER = new LoxElementType("INITIALIZER");
   IElementType LOGIC_AND_EXPR = new LoxElementType("LOGIC_AND_EXPR");
   IElementType LOGIC_OR_EXPR = new LoxElementType("LOGIC_OR_EXPR");
   IElementType PARAMETERS = new LoxElementType("PARAMETERS");
@@ -51,6 +53,7 @@ public interface LoxTypes {
   IElementType GREATER_EQUAL = new LoxTokenType(">=");
   IElementType IDENTIFIER = new LoxTokenType("IDENTIFIER");
   IElementType IF = new LoxTokenType("if");
+  IElementType INIT = new LoxTokenType("init");
   IElementType LEFT_BRACE = new LoxTokenType("{");
   IElementType LEFT_PAREN = new LoxTokenType("(");
   IElementType LESS = new LoxTokenType("<");
@@ -90,6 +93,9 @@ public interface LoxTypes {
       else if (type == CALL_EXPR) {
         return new CallExprImpl(node);
       }
+      else if (type == CLASS_DECL) {
+        return new ClassDeclImpl(node);
+      }
       else if (type == COMPARISON_EXPR) {
         return new ComparisonExprImpl(node);
       }
@@ -116,6 +122,9 @@ public interface LoxTypes {
       }
       else if (type == IF_STMT) {
         return new IfStmtImpl(node);
+      }
+      else if (type == INITIALIZER) {
+        return new InitializerImpl(node);
       }
       else if (type == LOGIC_AND_EXPR) {
         return new LogicAndExprImpl(node);

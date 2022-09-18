@@ -8,17 +8,17 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.github.wenjunhuang.lox.ideaplugin.LoxTypes.*;
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.github.wenjunhuang.lox.ideaplugin.psi.*;
 
-public class AssignmentExprImpl extends ExpressionImpl implements AssignmentExpr {
+public class ClassDeclImpl extends ASTWrapperPsiElement implements ClassDecl {
 
-  public AssignmentExprImpl(@NotNull ASTNode node) {
+  public ClassDeclImpl(@NotNull ASTNode node) {
     super(node);
   }
 
-  @Override
   public void accept(@NotNull Visitor visitor) {
-    visitor.visitAssignmentExpr(this);
+    visitor.visitClassDecl(this);
   }
 
   @Override
@@ -29,14 +29,20 @@ public class AssignmentExprImpl extends ExpressionImpl implements AssignmentExpr
 
   @Override
   @NotNull
-  public List<Expression> getExpressionList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expression.class);
+  public List<Function> getFunctionList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, Function.class);
   }
 
   @Override
-  @Nullable
+  @NotNull
+  public List<Initializer> getInitializerList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, Initializer.class);
+  }
+
+  @Override
+  @NotNull
   public PsiElement getIdentifier() {
-    return findChildByType(IDENTIFIER);
+    return findNotNullChildByType(IDENTIFIER);
   }
 
 }

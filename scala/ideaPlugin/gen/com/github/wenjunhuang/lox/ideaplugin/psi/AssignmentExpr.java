@@ -7,8 +7,8 @@ import com.intellij.psi.PsiElement;
 
 public interface AssignmentExpr extends Expression {
 
-  @Nullable
-  Expression getExpression();
+  @NotNull
+  List<Expression> getExpressionList();
 
   @Nullable
   PsiElement getIdentifier();

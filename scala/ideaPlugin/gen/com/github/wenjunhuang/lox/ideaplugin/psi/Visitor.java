@@ -23,6 +23,10 @@ public class Visitor extends PsiElementVisitor {
     visitExpression(o);
   }
 
+  public void visitClassDecl(@NotNull ClassDecl o) {
+    visitPsiElement(o);
+  }
+
   public void visitComparisonExpr(@NotNull ComparisonExpr o) {
     visitExpression(o);
   }
@@ -61,6 +65,10 @@ public class Visitor extends PsiElementVisitor {
 
   public void visitIfStmt(@NotNull IfStmt o) {
     visitStatement(o);
+  }
+
+  public void visitInitializer(@NotNull Initializer o) {
+    visitPsiElement(o);
   }
 
   public void visitLogicAndExpr(@NotNull LogicAndExpr o) {

@@ -15,51 +15,51 @@ IDENTIFIER='regexp:\p{Alpha}\w*'
 STRING="regexp:('([^'\\]\\.)*'|\"([^\"\\]|\\.)*\")"
 SPACE='regexp:\s+'
 
-SEMICOLON = ';'
-FUN = 'fun'
-IF = 'if'
-ELSE = 'else'
-FOR = 'for'
-WHILE = 'while'
-EQUAL = '='
-EQUAL_EQUAL = '=='
-LEFT_PAREN = '('
-RIGHT_PAREN = ')'
-LEFT_BRACE = '{'
-RIGHT_BRACE = '}'
-COMMA = ','
-DOT = '.'
-MINUS = '-'
-PLUS = '+'
-SLASH = '/'
-STAR = '*'
-BANG = '!'
-BANG_EQUAL = '!='
-GREATER = '>'
-GREATER_EQUAL = '>='
-LESS = '<'
-LESS_EQUAL = '<='
-AND = 'and'
-OR = 'or'
-CLASS = 'class'
-TRUE = 'true'
-FALSE = 'false'
-NIL = 'nil'
-PRINT = 'print'
-RETURN = 'return'
-SUPER = 'super'
-THIS = 'this'
-VAR = 'var'
-CLASS = 'class'
+//SEMICOLON = ';'
+//FUN = 'fun'
+//IF = 'if'
+//ELSE = 'else'
+//FOR = 'for'
+//WHILE = 'while'
+//EQUAL = '='
+//EQUAL_EQUAL = '=='
+//LEFT_PAREN = '('
+//RIGHT_PAREN = ')'
+//LEFT_BRACE = '{'
+//RIGHT_BRACE = '}'
+//COMMA = ','
+//DOT = '.'
+//MINUS = '-'
+//PLUS = '+'
+//SLASH = '/'
+//STAR = '*'
+//BANG = '!'
+//BANG_EQUAL = '!='
+//GREATER = '>'
+//GREATER_EQUAL = '>='
+//LESS = '<'
+//LESS_EQUAL = '<='
+//AND = 'and'
+//OR = 'or'
+//CLASS = 'class'
+//TRUE = 'true'
+//FALSE = 'false'
+//NIL = 'nil'
+//PRINT = 'print'
+//RETURN = 'return'
+//SUPER = 'super'
+//INIT = 'init'
+//THIS = 'this'
+//VAR = 'var'
+//CLASS = 'class'
 
 ]
 
 extends(".*Expr") = expression
 extends(".*Stmt") = statement
 }
-
 program ::= declaration *
-declaration ::= classDecl | funDecl | varDecl | statement
+declaration ::= varDecl | classDecl |  funDecl| statement
 classDecl ::= "class" IDENTIFIER "{" (initializer | function)* "}"
 initializer ::= "init" "(" parameters? ")" blockStmt
 funDecl ::= "fun" function
@@ -75,7 +75,7 @@ ifStmt ::= "if" "(" expression ")" statement ("else" statement)?
 exprStmt ::= expression ";"
 forStmt ::= "for" "(" (varDecl | exprStmt |";") expression? ";" expression? ")" statement
 
-expression ::= assignmentExpr
+expression ::= assignmentExpr {pin = 1}
 assignmentExpr ::= (callExpr ".")? IDENTIFIER '=' assignmentExpr | logicOrExpr
 logicOrExpr ::= logicAndExpr ('or' logicAndExpr)*
 logicAndExpr ::= equalityExpr ('and' equalityExpr)*
@@ -84,6 +84,6 @@ comparisonExpr ::= termExpr (('>'|'>='|'<'|'<=') termExpr)*
 termExpr ::= factorExpr (( '-'|'+') factorExpr)*
 factorExpr ::= unaryExpr (('/'|'*') unaryExpr)*
 unaryExpr ::= ('!'|'-') unaryExpr | callExpr
-callExpr ::= primaryExpr (("(" arguments? ")") | "." IDENTIFIER)*
+callExpr ::= primaryExpr ("(" arguments? ")" | "." IDENTIFIER)*
 arguments ::= expression ("," expression)*
-primaryExpr ::= NUMBER | STRING | 'true' | 'false' | 'nil' | '(' expression ')' | IDENTIFIER
+primaryExpr ::= NUMBER | STRING | 'this' | 'true' | 'false' | 'nil' | IDENTIFIER | '(' expression ')'

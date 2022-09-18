@@ -13,18 +13,20 @@ class LoxSyntaxHighlighter extends SyntaxHighlighterBase:
 
   override def getTokenHighlights(tokenType: IElementType): Array[TextAttributesKey] =
     tokenType match
-    case LoxTypes.IDENTIFIER => IDENTIFIER_KEYS
-    case LoxTypes.STRING     => STRING_KEYS
-    case LoxTypes.NUMBER     => NUMBER_KEYS
-    case LoxTypes.IF |
-         LoxTypes.FUN |
-         LoxTypes.FOR |
-         LoxTypes.WHILE |
-         LoxTypes.PRINT |
-         LoxTypes.RETURN |
-         LoxTypes.PRINT |
-         LoxTypes.VAR => KEYWORD_KEYS
-    case _                   => EMPTY_KEYS
+      case LoxTypes.IDENTIFIER => IDENTIFIER_KEYS
+      case LoxTypes.STRING     => STRING_KEYS
+      case LoxTypes.NUMBER     => NUMBER_KEYS
+      case LoxTypes.IF |
+          LoxTypes.FUN |
+          LoxTypes.FOR |
+          LoxTypes.WHILE |
+          LoxTypes.PRINT |
+          LoxTypes.RETURN |
+          LoxTypes.PRINT |
+          LoxTypes.INIT |
+          LoxTypes.VAR => KEYWORD_KEYS
+      case LoxTypes.CLASS      => CLASS_KEYS
+      case _                   => EMPTY_KEYS
 end LoxSyntaxHighlighter
 
 object LoxSyntaxHighlighter:
@@ -37,6 +39,8 @@ object LoxSyntaxHighlighter:
     createTextAttributesKey("LOX_STRING_VALUE", DefaultLanguageHighlighterColors.STRING)
   val NUMBER_VALUE: TextAttributesKey  =
     createTextAttributesKey("LOX_NUMBER_VALUE", DefaultLanguageHighlighterColors.NUMBER)
+  val CLASS_VALUE: TextAttributesKey   =
+    createTextAttributesKey("LOX_CLASS_VALUE", DefaultLanguageHighlighterColors.CLASS_NAME)
   val FUN_DECL: TextAttributesKey      =
     createTextAttributesKey("LOX_FUNCTION", DefaultLanguageHighlighterColors.FUNCTION_DECLARATION)
   val IDENTIFIER: TextAttributesKey    =
@@ -48,6 +52,7 @@ object LoxSyntaxHighlighter:
   val KEYWORD_KEYS    = Array(KEY)
   val STRING_KEYS     = Array(STRING_VALUE)
   val NUMBER_KEYS     = Array(NUMBER_VALUE)
+  val CLASS_KEYS      = Array(CLASS_VALUE)
   val EMPTY_KEYS      = Array.empty[TextAttributesKey]
 
 end LoxSyntaxHighlighter

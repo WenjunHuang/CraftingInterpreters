@@ -5,18 +5,12 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface Declaration extends PsiElement {
+public interface Initializer extends PsiElement {
+
+  @NotNull
+  BlockStmt getBlockStmt();
 
   @Nullable
-  ClassDecl getClassDecl();
-
-  @Nullable
-  FunDecl getFunDecl();
-
-  @Nullable
-  Statement getStatement();
-
-  @Nullable
-  VarDecl getVarDecl();
+  Parameters getParameters();
 
 }
