@@ -120,7 +120,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // "{" declaration * "}"
+  // '{' declaration* '}'
   public static boolean blockStmt(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "blockStmt")) return false;
     if (!nextTokenIs(b, LEFT_BRACE)) return false;
@@ -133,7 +133,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // declaration *
+  // declaration*
   private static boolean blockStmt_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "blockStmt_1")) return false;
     while (true) {
@@ -277,16 +277,41 @@ public class LoxParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // classDecl | varDecl | funDecl|statement
+  // varDecl | classDecl |  funDecl | statement
   public static boolean declaration(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "declaration")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, DECLARATION, "<declaration>");
-    r = classDecl(b, l + 1);
-    if (!r) r = varDecl(b, l + 1);
+    r = varDecl(b, l + 1);
+    if (!r) r = classDecl(b, l + 1);
     if (!r) r = funDecl(b, l + 1);
     if (!r) r = statement(b, l + 1);
+    exit_section_(b, l, m, r, false, LoxParser::declarationRecover);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // !('class' | 'fun' | 'var' |'if' | 'print' | '{'|'}' )
+  static boolean declarationRecover(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "declarationRecover")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NOT_);
+    r = !declarationRecover_0(b, l + 1);
     exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // 'class' | 'fun' | 'var' |'if' | 'print' | '{'|'}'
+  private static boolean declarationRecover_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "declarationRecover_0")) return false;
+    boolean r;
+    r = consumeToken(b, CLASS);
+    if (!r) r = consumeToken(b, FUN);
+    if (!r) r = consumeToken(b, VAR);
+    if (!r) r = consumeToken(b, IF);
+    if (!r) r = consumeToken(b, PRINT);
+    if (!r) r = consumeToken(b, LEFT_BRACE);
+    if (!r) r = consumeToken(b, RIGHT_BRACE);
     return r;
   }
 
@@ -442,7 +467,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // "fun" function
+  // 'fun' function
   public static boolean funDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "funDecl")) return false;
     if (!nextTokenIs(b, FUN)) return false;
@@ -477,7 +502,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // "if" "(" expression ")" statement ("else" statement)?
+  // 'if' '(' expression ")" statement ("else" statement)?
   public static boolean ifStmt(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ifStmt")) return false;
     if (!nextTokenIs(b, IF)) return false;
@@ -808,13 +833,14 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean varDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "varDecl")) return false;
     if (!nextTokenIs(b, VAR)) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, VAR, IDENTIFIER);
-    r = r && varDecl_2(b, l + 1);
-    r = r && consumeToken(b, SEMICOLON);
-    exit_section_(b, m, VAR_DECL, r);
-    return r;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, VAR_DECL, null);
+    r = consumeTokens(b, 2, VAR, IDENTIFIER);
+    p = r; // pin = 2
+    r = r && report_error_(b, varDecl_2(b, l + 1));
+    r = p && consumeToken(b, SEMICOLON) && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
   }
 
   // ("=" expression )?

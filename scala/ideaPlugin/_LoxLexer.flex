@@ -36,12 +36,12 @@ SPACE=[ \t\n\x0B\f\r]+
 <YYINITIAL> {
   {WHITE_SPACE}        { return WHITE_SPACE; }
 
-  ";"                  { return SEMICOLON; }
   "fun"                { return FUN; }
   "if"                 { return IF; }
   "else"               { return ELSE; }
   "for"                { return FOR; }
   "while"              { return WHILE; }
+  ";"                  { return SEMICOLON; }
   "="                  { return EQUAL; }
   "=="                 { return EQUAL_EQUAL; }
   "("                  { return LEFT_PAREN; }

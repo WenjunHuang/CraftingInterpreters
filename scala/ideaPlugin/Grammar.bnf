@@ -2,80 +2,86 @@
 psiPackage = "com.github.wenjunhuang.lox.ideaplugin.psi"
 psiImplPackage = "com.github.wenjunhuang.lox.ideaplugin.psi.impl"
 parserClass = "com.github.wenjunhuang.lox.ideaplugin.LoxParser"
+implements = "com.github.wenjunhuang.lox.ideaplugin.psi.LoxPsiCompositeElement"
 parserUtilClass="com.github.wenjunhuang.lox.ideaplugin.LoxParserUtil"
 elementTypeHolderClass = "com.github.wenjunhuang.lox.ideaplugin.LoxTypes"
 elementTypeClass = "com.github.wenjunhuang.lox.ideaplugin.LoxElementType"
 tokenTypeClass="com.github.wenjunhuang.lox.ideaplugin.LoxTokenType"
 
 tokens=[
+FUN = 'fun'
+IF = 'if'
+ELSE = 'else'
+FOR = 'for'
+WHILE = 'while'
+SEMICOLON = ';'
+EQUAL = '='
+EQUAL_EQUAL = '=='
+LEFT_PAREN = '('
+RIGHT_PAREN = ')'
+LEFT_BRACE = '{'
+RIGHT_BRACE = '}'
+COMMA = ','
+DOT = '.'
+MINUS = '-'
+PLUS = '+'
+SLASH = '/'
+STAR = '*'
+BANG = '!'
+BANG_EQUAL = '!='
+GREATER = '>'
+GREATER_EQUAL = '>='
+LESS = '<'
+LESS_EQUAL = '<='
+AND = 'and'
+OR = 'or'
+CLASS = 'class'
+TRUE = 'true'
+FALSE = 'false'
+NIL = 'nil'
+PRINT = 'print'
+RETURN = 'return'
+SUPER = 'super'
+INIT = 'init'
+THIS = 'this'
+VAR = 'var'
+CLASS = 'class'
+
 LINE_COMMENT='regexp://.*'
 BLOCK_COMMENT = 'regexp:/\*(.|\n)*\*/'
 NUMBER='regexp:\d+(\.\d*)?'
 IDENTIFIER='regexp:\p{Alpha}\w*'
 STRING="regexp:('([^'\\]\\.)*'|\"([^\"\\]|\\.)*\")"
-SPACE='regexp:\s+'
-
-//SEMICOLON = ';'
-//FUN = 'fun'
-//IF = 'if'
-//ELSE = 'else'
-//FOR = 'for'
-//WHILE = 'while'
-//EQUAL = '='
-//EQUAL_EQUAL = '=='
-//LEFT_PAREN = '('
-//RIGHT_PAREN = ')'
-//LEFT_BRACE = '{'
-//RIGHT_BRACE = '}'
-//COMMA = ','
-//DOT = '.'
-//MINUS = '-'
-//PLUS = '+'
-//SLASH = '/'
-//STAR = '*'
-//BANG = '!'
-//BANG_EQUAL = '!='
-//GREATER = '>'
-//GREATER_EQUAL = '>='
-//LESS = '<'
-//LESS_EQUAL = '<='
-//AND = 'and'
-//OR = 'or'
-//CLASS = 'class'
-//TRUE = 'true'
-//FALSE = 'false'
-//NIL = 'nil'
-//PRINT = 'print'
-//RETURN = 'return'
-//SUPER = 'super'
-//INIT = 'init'
-//THIS = 'this'
-//VAR = 'var'
-//CLASS = 'class'
-
+SPACE="regexp:\s+"
 ]
 
 extends(".*Expr") = expression
 extends(".*Stmt") = statement
 }
 program ::= declaration *
-declaration ::= varDecl | classDecl |  funDecl| statement
-classDecl ::= "class" IDENTIFIER "{" (initializer | function)* "}"
-initializer ::= "init" "(" parameters? ")" blockStmt
-funDecl ::= "fun" function
-function ::= IDENTIFIER "(" parameters? ")" blockStmt
+declaration ::= varDecl | classDecl |  funDecl | statement {recoverWhile=declarationRecover}
+private declarationRecover ::= !('class' | 'fun' | 'var' |'if' | 'print' | '{'|'}' )
+
+classDecl ::= "class" IDENTIFIER classBody {pin = 2}
+private classBody ::="{" (initializer | function)* "}" {pin=1}
+initializer ::= "init" "(" parameters? ")" blockStmt {pin=1}
+
+funDecl ::= 'fun' function
+function ::= IDENTIFIER "(" parameters? ")" blockStmt {pin=1}
 parameters ::= IDENTIFIER ("," IDENTIFIER)*
-varDecl ::= "var" IDENTIFIER ("=" expression )? ";"
-statement ::= printStmt | blockStmt | ifStmt | whileStmt |forStmt|returnStmt|exprStmt
+
+varDecl ::= "var" IDENTIFIER ("=" expression )? ";" {pin=2 }
+
+statement ::= printStmt | blockStmt | ifStmt | whileStmt |forStmt|returnStmt| exprStmt
 returnStmt ::= "return" expression? ";"
 whileStmt ::= "while" "(" expression ")" statement
-printStmt ::= "print" expression ";"
-blockStmt ::= "{" declaration * "}"
-ifStmt ::= "if" "(" expression ")" statement ("else" statement)?
+printStmt ::= "print" expression ";" {pin=1}
+blockStmt ::= '{' declaration* '}'
+ifStmt ::= 'if' '(' expression ")" statement ("else" statement)?
 exprStmt ::= expression ";"
 forStmt ::= "for" "(" (varDecl | exprStmt |";") expression? ";" expression? ")" statement
 
-expression ::= assignmentExpr {pin = 1}
+expression ::= assignmentExpr
 assignmentExpr ::= (callExpr ".")? IDENTIFIER '=' assignmentExpr | logicOrExpr
 logicOrExpr ::= logicAndExpr ('or' logicAndExpr)*
 logicAndExpr ::= equalityExpr ('and' equalityExpr)*

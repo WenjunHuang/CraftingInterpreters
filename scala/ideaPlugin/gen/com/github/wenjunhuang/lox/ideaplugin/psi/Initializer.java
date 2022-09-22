@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface Initializer extends PsiElement {
+public interface Initializer extends LoxPsiCompositeElement {
 
   @NotNull
   BlockStmt getBlockStmt();

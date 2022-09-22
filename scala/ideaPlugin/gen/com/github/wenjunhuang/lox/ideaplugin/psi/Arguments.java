@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface Arguments extends PsiElement {
+public interface Arguments extends LoxPsiCompositeElement {
 
   @NotNull
   List<Expression> getExpressionList();

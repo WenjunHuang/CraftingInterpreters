@@ -42,14 +42,20 @@ object Program:
                    |var another = DenoshireCream("Denoshire","Hello");
                    |print another.words;
                    |""".stripMargin
+    val source2     = """
+                    | var count = 10;
+                    | print count;
+                    | var foo = foo;
+                    |
+                    |""".stripMargin
     Lox.output = Console.out
     val interpreter = new Interpreter(Console.out)
-    runSource(interpreter, source)
+    runSource(interpreter, source2)
 
   def runFile(file: File, output: PrintStream): Try[Unit] =
     Lox.output = output
     Using(io.Source.fromFile(file)) { source =>
-      val interpreter = new Interpreter(output)
+      val interpreter = Interpreter(output)
       runSource(interpreter, source.mkString)
     }
 
@@ -61,17 +67,17 @@ object Program:
       .takeWhile(_ != null)
       .foreach(run(interpreter, buffer))
 
-  private def runSource(interpreter: Interpreter, source: String,resolve:Boolean = true) =
+  private def runSource(interpreter: Interpreter, source: String, resolve: Boolean = true) =
     val tokens     = Scanner(source).scanTokens()
     val expression = Parser(tokens).parse()
     expression match
-      case Right(expr) =>
+      case Right(stmts) =>
         if resolve then
           val resolver = Resolver(interpreter)
-          resolver.resolve(expr)
+          resolver.startResolve(stmts)
         if !Lox.hadError then
-          interpreter.interpret(expr)
-      case Left(error) => error.printStackTrace()
+          interpreter.interpret(stmts)
+      case Left(error)  => error.printStackTrace()
 
   private def run(interpreter: Interpreter, buffer: mutable.Buffer[String])(source: String): Unit =
     val realSource = if source.trim.endsWith("{") then

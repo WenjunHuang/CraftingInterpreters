@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface ClassDecl extends PsiElement {
+public interface ClassDecl extends LoxPsiCompositeElement {
 
   @NotNull
   List<Function> getFunctionList();

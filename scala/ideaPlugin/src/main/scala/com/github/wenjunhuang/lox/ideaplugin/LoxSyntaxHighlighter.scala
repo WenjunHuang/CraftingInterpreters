@@ -40,7 +40,7 @@ object LoxSyntaxHighlighter:
   val NUMBER_VALUE: TextAttributesKey  =
     createTextAttributesKey("LOX_NUMBER_VALUE", DefaultLanguageHighlighterColors.NUMBER)
   val CLASS_VALUE: TextAttributesKey   =
-    createTextAttributesKey("LOX_CLASS_VALUE", DefaultLanguageHighlighterColors.CLASS_NAME)
+    createTextAttributesKey("LOX_CLASS_VALUE", DefaultLanguageHighlighterColors.KEYWORD)
   val FUN_DECL: TextAttributesKey      =
     createTextAttributesKey("LOX_FUNCTION", DefaultLanguageHighlighterColors.FUNCTION_DECLARATION)
   val IDENTIFIER: TextAttributesKey    =

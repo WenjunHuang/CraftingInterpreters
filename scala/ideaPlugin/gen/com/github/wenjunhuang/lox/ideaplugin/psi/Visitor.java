@@ -3,12 +3,11 @@ package com.github.wenjunhuang.lox.ideaplugin.psi;
 
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElementVisitor;
-import com.intellij.psi.PsiElement;
 
 public class Visitor extends PsiElementVisitor {
 
   public void visitArguments(@NotNull Arguments o) {
-    visitPsiElement(o);
+    visitLoxPsiCompositeElement(o);
   }
 
   public void visitAssignmentExpr(@NotNull AssignmentExpr o) {
@@ -24,7 +23,7 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitClassDecl(@NotNull ClassDecl o) {
-    visitPsiElement(o);
+    visitLoxPsiCompositeElement(o);
   }
 
   public void visitComparisonExpr(@NotNull ComparisonExpr o) {
@@ -32,7 +31,7 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitDeclaration(@NotNull Declaration o) {
-    visitPsiElement(o);
+    visitLoxPsiCompositeElement(o);
   }
 
   public void visitEqualityExpr(@NotNull EqualityExpr o) {
@@ -44,7 +43,7 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitExpression(@NotNull Expression o) {
-    visitPsiElement(o);
+    visitLoxPsiCompositeElement(o);
   }
 
   public void visitFactorExpr(@NotNull FactorExpr o) {
@@ -56,11 +55,11 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitFunDecl(@NotNull FunDecl o) {
-    visitPsiElement(o);
+    visitLoxPsiCompositeElement(o);
   }
 
   public void visitFunction(@NotNull Function o) {
-    visitPsiElement(o);
+    visitLoxPsiCompositeElement(o);
   }
 
   public void visitIfStmt(@NotNull IfStmt o) {
@@ -68,7 +67,7 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitInitializer(@NotNull Initializer o) {
-    visitPsiElement(o);
+    visitLoxPsiCompositeElement(o);
   }
 
   public void visitLogicAndExpr(@NotNull LogicAndExpr o) {
@@ -80,7 +79,7 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitParameters(@NotNull Parameters o) {
-    visitPsiElement(o);
+    visitLoxPsiCompositeElement(o);
   }
 
   public void visitPrimaryExpr(@NotNull PrimaryExpr o) {
@@ -96,7 +95,7 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitStatement(@NotNull Statement o) {
-    visitPsiElement(o);
+    visitLoxPsiCompositeElement(o);
   }
 
   public void visitTermExpr(@NotNull TermExpr o) {
@@ -108,14 +107,14 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitVarDecl(@NotNull VarDecl o) {
-    visitPsiElement(o);
+    visitLoxPsiCompositeElement(o);
   }
 
   public void visitWhileStmt(@NotNull WhileStmt o) {
     visitStatement(o);
   }
 
-  public void visitPsiElement(@NotNull PsiElement o) {
+  public void visitLoxPsiCompositeElement(@NotNull LoxPsiCompositeElement o) {
     visitElement(o);
   }
 
