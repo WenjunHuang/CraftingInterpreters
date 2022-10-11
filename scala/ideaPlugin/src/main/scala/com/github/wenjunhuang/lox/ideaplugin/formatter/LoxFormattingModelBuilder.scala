@@ -9,11 +9,11 @@ class LoxFormattingModelBuilder extends FormattingModelBuilder:
 end LoxFormattingModelBuilder
 
 object LoxFormattingModelBuilder:
-  def createSpaceBuilder(settings:CodeStyleSettings):SpacingBuilder =
-    SpacingBuilder(settings,Lox)
-      .around(LoxTypes.COMMA)
-      .spaceIf(settings.getCommonSettings(Lox.getID))
-      .before(LoxTypes.SEMICOLON)
+  def createSpaceBuilder(settings:CodeStyleSettings):SpacingBuilder = ???
+//    SpacingBuilder(settings,Lox)
+//      .around(LoxTypes.COMMA)
+//      .spaceIf(settings.getCommonSettings(Lox.getID))
+//      .before(LoxTypes.SEMICOLON)
 
 
 

@@ -3,12 +3,12 @@ import com.intellij.formatting.{FormattingContext, FormattingModel, FormattingMo
 import com.intellij.psi.formatter.DocumentBasedFormattingModel
 
 class LoxFormattingModelBuilder extends FormattingModelBuilder:
-  override def createModel(formattingContext: FormattingContext): FormattingModel =
-    val psiFile = formattingContext.getContainingFile
-    val settings = formattingContext.getCodeStyleSettings
-    val rootNode = formattingContext.getNode
-
-    DocumentBasedFormattingModel()
+  override def createModel(formattingContext: FormattingContext): FormattingModel = ???
+//    val psiFile = formattingContext.getContainingFile
+//    val settings = formattingContext.getCodeStyleSettings
+//    val rootNode = formattingContext.getNode
+//
+//    DocumentBasedFormattingModel()
 
 end LoxFormattingModelBuilder
 
