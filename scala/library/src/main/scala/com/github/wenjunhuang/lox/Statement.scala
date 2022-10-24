@@ -9,7 +9,11 @@ enum Statement:
   case While(condition: Expression, body: Statement)
   case Block(statements: Vector[Statement])
   case Func(name: Token, params: Vector[Token], body: Statement.Block)
-  case Class(name: Token, initializers: Vector[Statement.Func], methods: Vector[Statement.Func])
+  case Class(name: Token,
+             superClass: Option[Expression.Variable],
+             initializers: Vector[Statement.Func],
+             methods: Vector[Statement.Func]
+  )
 
   def accept(visitor: StatementVisitor): Unit = this match
     case v: Var           => visitor.visitVarStatement(v)

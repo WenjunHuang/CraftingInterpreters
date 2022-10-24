@@ -41,16 +41,19 @@ object Program:
                    |
                    |var another = DenoshireCream("Denoshire","Hello");
                    |print another.words;
+                   |another.greeting = "Hello";
+                   |print another.greeting;
                    |""".stripMargin
     val source2     = """
                     | var count = 10;
                     | print count;
-                    | var foo = foo;
+                    | var foo = count;
+                    | print foo;
                     |
                     |""".stripMargin
     Lox.output = Console.out
     val interpreter = new Interpreter(Console.out)
-    runSource(interpreter, source2)
+    runSource(interpreter, source)
 
   def runFile(file: File, output: PrintStream): Try[Unit] =
     Lox.output = output

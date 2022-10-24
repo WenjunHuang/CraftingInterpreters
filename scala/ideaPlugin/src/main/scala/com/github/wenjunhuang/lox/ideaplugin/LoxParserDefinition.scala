@@ -31,7 +31,7 @@ class LoxParserDefinition extends ParserDefinition:
 end LoxParserDefinition
 
 object LoxParserDefinition:
-  val FILE: IFileElementType = new IFileElementType(Lox)
+  val FILE: IFileElementType = new IFileElementType("LoxFile",Lox)
   val WHITE_SPACES: TokenSet = TokenSet.create(TokenType.WHITE_SPACE)
   val COMMENTS: TokenSet = TokenSet.create(LoxTypes.LINE_COMMENT, LoxTypes.BLOCK_COMMENT)
 

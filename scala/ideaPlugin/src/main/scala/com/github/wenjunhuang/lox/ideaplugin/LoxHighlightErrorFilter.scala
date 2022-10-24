@@ -4,6 +4,6 @@ import com.intellij.codeInsight.highlighting.HighlightErrorFilter
 import com.intellij.psi.PsiErrorElement
 
 class LoxHighlightErrorFilter extends HighlightErrorFilter:
-  override def shouldHighlightErrorElement(element: PsiErrorElement): Boolean = false
+  override def shouldHighlightErrorElement(element: PsiErrorElement): Boolean = true
 end LoxHighlightErrorFilter
 

@@ -5,8 +5,9 @@ class LoxFormattingModelBuilder extends FormattingModelBuilder:
   override def createModel(formattingContext: FormattingContext): FormattingModel =
     val psiFile = formattingContext.getContainingFile
     val settings = formattingContext.getCodeStyleSettings
-    val rootNode = formattingContext.getNode
-    val context =
+//    val rootnode = formattingcontext.getnode
+//    val context =
+    ???
 
 end LoxFormattingModelBuilder
 

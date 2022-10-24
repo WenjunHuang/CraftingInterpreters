@@ -34,6 +34,11 @@ class Parser(private val tokens: Vector[Token]):
   private def classDeclaration(): Statement.Class =
     val name = consume(IDENTIFIER, "Expect class name.")
 
+    val superClass: Option[Expression.Variable] = if matching(LESS) then
+      consume(IDENTIFIER, "Expect superclass name.")
+      Some(Expression.Variable(previous))
+    else None
+
     consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
 
     val methods      = mutable.Buffer[Statement.Func]()
@@ -46,7 +51,7 @@ class Parser(private val tokens: Vector[Token]):
           methods += function(FunKind.Method)
     consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.")
 
-    Statement.Class(name, initializers.toVector, methods.toVector)
+    Statement.Class(name, superClass, initializers.toVector, methods.toVector)
 
   private def function(kind: FunKind, tokenType: TokenType = TokenType.IDENTIFIER): Statement.Func =
     val name = consume(tokenType, s"Expect $kind name.")

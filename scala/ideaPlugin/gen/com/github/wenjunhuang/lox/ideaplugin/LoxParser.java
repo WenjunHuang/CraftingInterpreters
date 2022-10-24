@@ -16,7 +16,11 @@ public class LoxParser implements PsiParser, LightPsiParser {
 
   public ASTNode parse(IElementType t, PsiBuilder b) {
     parseLight(t, b);
-    return b.getTreeBuilt();
+    try {
+      return b.getTreeBuilt();
+    }catch(Exception e){
+      throw e;
+    }
   }
 
   public void parseLight(IElementType t, PsiBuilder b) {
@@ -198,37 +202,52 @@ public class LoxParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // "class" IDENTIFIER "{" (initializer | function)* "}"
-  public static boolean classDecl(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "classDecl")) return false;
-    if (!nextTokenIs(b, CLASS)) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, CLASS, IDENTIFIER, LEFT_BRACE);
-    r = r && classDecl_3(b, l + 1);
-    r = r && consumeToken(b, RIGHT_BRACE);
-    exit_section_(b, m, CLASS_DECL, r);
-    return r;
+  // "{" (initializer | function)* "}"
+  static boolean classBody(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "classBody")) return false;
+    if (!nextTokenIs(b, LEFT_BRACE)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_);
+    r = consumeToken(b, LEFT_BRACE);
+    p = r; // pin = 1
+    r = r && report_error_(b, classBody_1(b, l + 1));
+    r = p && consumeToken(b, RIGHT_BRACE) && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
   }
 
   // (initializer | function)*
-  private static boolean classDecl_3(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "classDecl_3")) return false;
+  private static boolean classBody_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "classBody_1")) return false;
     while (true) {
       int c = current_position_(b);
-      if (!classDecl_3_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "classDecl_3", c)) break;
+      if (!classBody_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "classBody_1", c)) break;
     }
     return true;
   }
 
   // initializer | function
-  private static boolean classDecl_3_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "classDecl_3_0")) return false;
+  private static boolean classBody_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "classBody_1_0")) return false;
     boolean r;
     r = initializer(b, l + 1);
     if (!r) r = function(b, l + 1);
     return r;
+  }
+
+  /* ********************************************************** */
+  // "class" IDENTIFIER classBody
+  public static boolean classDecl(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "classDecl")) return false;
+    if (!nextTokenIs(b, CLASS)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, CLASS_DECL, null);
+    r = consumeTokens(b, 2, CLASS, IDENTIFIER);
+    p = r; // pin = 2
+    r = r && classBody(b, l + 1);
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
   }
 
   /* ********************************************************** */
@@ -484,14 +503,15 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean function(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "function")) return false;
     if (!nextTokenIs(b, IDENTIFIER)) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, IDENTIFIER, LEFT_PAREN);
-    r = r && function_2(b, l + 1);
-    r = r && consumeToken(b, RIGHT_PAREN);
-    r = r && blockStmt(b, l + 1);
-    exit_section_(b, m, FUNCTION, r);
-    return r;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, FUNCTION, null);
+    r = consumeTokens(b, 1, IDENTIFIER, LEFT_PAREN);
+    p = r; // pin = 1
+    r = r && report_error_(b, function_2(b, l + 1));
+    r = p && report_error_(b, consumeToken(b, RIGHT_PAREN)) && r;
+    r = p && blockStmt(b, l + 1) && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
   }
 
   // parameters?
@@ -540,14 +560,15 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean initializer(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "initializer")) return false;
     if (!nextTokenIs(b, INIT)) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, INIT, LEFT_PAREN);
-    r = r && initializer_2(b, l + 1);
-    r = r && consumeToken(b, RIGHT_PAREN);
-    r = r && blockStmt(b, l + 1);
-    exit_section_(b, m, INITIALIZER, r);
-    return r;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, INITIALIZER, null);
+    r = consumeTokens(b, 1, INIT, LEFT_PAREN);
+    p = r; // pin = 1
+    r = r && report_error_(b, initializer_2(b, l + 1));
+    r = p && report_error_(b, consumeToken(b, RIGHT_PAREN)) && r;
+    r = p && blockStmt(b, l + 1) && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
   }
 
   // parameters?
@@ -694,13 +715,14 @@ public class LoxParser implements PsiParser, LightPsiParser {
   public static boolean printStmt(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "printStmt")) return false;
     if (!nextTokenIs(b, PRINT)) return false;
-    boolean r;
-    Marker m = enter_section_(b);
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, PRINT_STMT, null);
     r = consumeToken(b, PRINT);
-    r = r && expression(b, l + 1);
-    r = r && consumeToken(b, SEMICOLON);
-    exit_section_(b, m, PRINT_STMT, r);
-    return r;
+    p = r; // pin = 1
+    r = r && report_error_(b, expression(b, l + 1));
+    r = p && consumeToken(b, SEMICOLON) && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
   }
 
   /* ********************************************************** */
@@ -737,7 +759,7 @@ public class LoxParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // printStmt | blockStmt | ifStmt | whileStmt |forStmt|returnStmt|exprStmt
+  // printStmt | blockStmt | ifStmt | whileStmt |forStmt|returnStmt| exprStmt
   public static boolean statement(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "statement")) return false;
     boolean r;

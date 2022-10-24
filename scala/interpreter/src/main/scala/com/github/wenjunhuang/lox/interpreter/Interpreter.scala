@@ -135,7 +135,7 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
               executeBlock(func.body.statements, Environment(paramsEnv))
               instance
             catch
-              case returnValue: Return =>
+              case _: Return =>
                 instance
         }
       )
@@ -267,7 +267,7 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
         fields.put(expr.name.lexeme, value)
         value
       case _                              =>
-        throw new RuntimeError(expr.name, "Only instances have fields.")
+        throw RuntimeError(expr.name, "Only instances have fields.")
 
   override def visitThis(expr: Expression.This): Value =
     lookUpVariable(expr.keyword, expr) match

@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement;
 
 public interface Initializer extends LoxPsiCompositeElement {
 
-  @NotNull
+  @Nullable
   BlockStmt getBlockStmt();
 
   @Nullable

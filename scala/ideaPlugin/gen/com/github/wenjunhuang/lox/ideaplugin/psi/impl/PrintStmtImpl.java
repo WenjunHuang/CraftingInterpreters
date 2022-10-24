@@ -28,9 +28,9 @@ public class PrintStmtImpl extends StatementImpl implements PrintStmt {
   }
 
   @Override
-  @NotNull
+  @Nullable
   public Expression getExpression() {
-    return findNotNullChildByClass(Expression.class);
+    return findChildByClass(Expression.class);
   }
 
 }

@@ -28,9 +28,9 @@ public class FunctionImpl extends ASTWrapperPsiElement implements Function {
   }
 
   @Override
-  @NotNull
+  @Nullable
   public BlockStmt getBlockStmt() {
-    return findNotNullChildByClass(BlockStmt.class);
+    return findChildByClass(BlockStmt.class);
   }
 
   @Override

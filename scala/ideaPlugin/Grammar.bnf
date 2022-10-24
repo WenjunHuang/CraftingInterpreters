@@ -62,12 +62,14 @@ program ::= declaration *
 declaration ::= varDecl | classDecl |  funDecl | statement {recoverWhile=declarationRecover}
 private declarationRecover ::= !('class' | 'fun' | 'var' |'if' | 'print' | '{'|'}' )
 
-classDecl ::= "class" IDENTIFIER classBody {pin = 2}
-private classBody ::="{" (initializer | function)* "}" {pin=1}
-initializer ::= "init" "(" parameters? ")" blockStmt {pin=1}
+classDecl ::= "class" IDENTIFIER ("<" IDENTIFIER)? classBody {pin = 2}
+classBody ::="{" (classInitializer | classMethod)* "}"
+{methods=[getInitializers getMethods]}
 
-funDecl ::= 'fun' function
-function ::= IDENTIFIER "(" parameters? ")" blockStmt {pin=1}
+classInitializer ::= "init" "(" parameters? ")" blockStmt {pin=1}
+classMethod ::= IDENTIFIER "(" parameters? ")" blockStmt {pin=1}
+
+funDecl ::= 'fun' IDENTIFIER "(" parameters? ")" blockStmt  {pin=2}
 parameters ::= IDENTIFIER ("," IDENTIFIER)*
 
 varDecl ::= "var" IDENTIFIER ("=" expression )? ";" {pin=2 }

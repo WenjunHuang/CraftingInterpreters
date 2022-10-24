@@ -12,14 +12,14 @@
                                implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxParserDefinition"/>
         <lang.syntaxHighlighterFactory language="Lox"
                                        implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxSyntaxHighlighterFactory"/>
-        <annotator language="Lox" implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxAnnotator"/>
-        <highlightErrorFilter implementation="com.github.wenjunhuang.lox.ideaplugin.LoxHighlightErrorFilter"/>
+<!--        <annotator language="Lox" implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxAnnotator"/>-->
+<!--        <highlightErrorFilter implementation="com.github.wenjunhuang.lox.ideaplugin.LoxHighlightErrorFilter"/>-->
         <lang.braceMatcher language="Lox" implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxBraceMatcher"/>
         <colorSettingsPage
                 implementation="com.github.wenjunhuang.lox.ideaplugin.LoxColorSettingsPage"/>
         <configurationType implementation="com.github.wenjunhuang.lox.ideaplugin.execution.LoxRunConfigurationType"/>
 <!--        <lang.commenter language="Lox" implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxCommenter"/>-->
-        <typedHandler implementation=""/>
+<!--        <typedHandler implementation=""/>-->
         <!--        <lang.psiStructureViewFactory language="Lox"-->
         <!--                                      implementationClass="com.github.wenjunhuang.lox.ideaplugin.LoxStructureViewFactory"/>-->
 

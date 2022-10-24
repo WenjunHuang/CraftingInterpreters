@@ -24,3 +24,4 @@ enum Value:
       case InitializerValue(_, _)  => "<initializer>"
       case MethodValue(arity, _)   => s"<method arity: $arity>"
       case NoValue                 => "nil"
+end Value

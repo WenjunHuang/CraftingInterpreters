@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement;
 
 public interface PrintStmt extends Statement {
 
-  @NotNull
+  @Nullable
   Expression getExpression();
 
 }

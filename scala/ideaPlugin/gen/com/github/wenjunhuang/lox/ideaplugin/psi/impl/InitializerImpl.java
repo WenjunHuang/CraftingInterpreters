@@ -28,9 +28,9 @@ public class InitializerImpl extends ASTWrapperPsiElement implements Initializer
   }
 
   @Override
-  @NotNull
+  @Nullable
   public BlockStmt getBlockStmt() {
-    return findNotNullChildByClass(BlockStmt.class);
+    return findChildByClass(BlockStmt.class);
   }
 
   @Override

@@ -85,6 +85,11 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
 
   override def visitClassStatement(statement: Statement.Class): Unit =
     declare(statement.name)
+    statement.superClass match
+      case Some(superClass) =>
+        resolve(superClass)
+      case None             =>
+
     define(statement.name)
 
     Using(beginScope()) { scope =>
@@ -108,8 +113,8 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
     if statement.expression.isDefined then
       resolve(statement.expression.get)
 
-  def startResolve(statements: Seq[Statement]): Unit =
-    Using(beginScope()){_=>
+  def startResolve(statements: Seq[Statement]): Unit    =
+    Using(beginScope()) { _ =>
       resolve(statements)
     }
   private def resolve(statements: Seq[Statement]): Unit =
