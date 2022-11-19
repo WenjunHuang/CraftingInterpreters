@@ -48,4 +48,7 @@ enum TokenType:
   case VAR
   case WHILE
   case EOF
+
+  // only for test
+  case Unknown
 end TokenType

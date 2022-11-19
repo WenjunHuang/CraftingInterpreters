@@ -1,4 +1,4 @@
-FILE(0,39)
+LoxFile(0,39)
   DeclarationImpl(LoxElementType:DECLARATION)(0,39)
     FunDeclImpl(LoxElementType:FUN_DECL)(0,39)
       PsiElement(LoxTokenType:fun)('fun')(0,3)

@@ -28,3 +28,8 @@ enum Expression:
       case t: This     => visitor.visitThis(t)
 
 end Expression
+
+object Expression:
+  given Conversion[Value, Expression.Literal] with
+    override def apply(x: Value): Expression.Literal = Expression.Literal(x)
+end Expression

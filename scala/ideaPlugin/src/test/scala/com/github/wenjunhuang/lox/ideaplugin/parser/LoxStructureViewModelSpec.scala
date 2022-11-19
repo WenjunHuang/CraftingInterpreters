@@ -1,4 +1,4 @@
-package com.github.wenjunhuang.lox.ideaplugin
+package com.github.wenjunhuang.lox.ideaplugin.parser
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

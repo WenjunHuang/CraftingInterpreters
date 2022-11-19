@@ -83,10 +83,12 @@ ifStmt ::= 'if' '(' expression ")" statement ("else" statement)?
 exprStmt ::= expression ";"
 forStmt ::= "for" "(" (varDecl | exprStmt |";") expression? ";" expression? ")" statement
 
-expression ::= assignmentExpr
-assignmentExpr ::= (callExpr ".")? IDENTIFIER '=' assignmentExpr | logicOrExpr
-logicOrExpr ::= logicAndExpr ('or' logicAndExpr)*
-logicAndExpr ::= equalityExpr ('and' equalityExpr)*
+expression ::= assignmentExprWrapper
+private assignmentExprWrapper ::= (callExprWrapper ".")? IDENTIFIER '=' assignmentExpr | logicOrExprWrapper
+private logicOrExprWrapper ::= logicAndExprWrapper logicOrExpr*
+ left logicOrExpr ::= 'or' logicAndExprWrapper
+private logicAndExprWrapper ::= equalityExprWrapper logicAndExprWrapper*
+ left logicAndExpr ::= 'and' equalityExpr
 equalityExpr ::= comparisonExpr (('!=' | '==') comparisonExpr)*
 comparisonExpr ::= termExpr (('>'|'>='|'<'|'<=') termExpr)*
 termExpr ::= factorExpr (( '-'|'+') factorExpr)*

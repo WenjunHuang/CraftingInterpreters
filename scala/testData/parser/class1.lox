@@ -1,0 +1,20 @@
+class Foo {
+    init(name) {
+        this.name = name;
+    }
+
+    greet(){
+        print("Hello, my name is " + this.name);
+    }
+}
+
+class Bar < Foo {
+    init(word){
+        this.word = word;
+    }
+
+    greet(){
+        print("Hello, my word is " + this.word);
+    }
+}
+

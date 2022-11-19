@@ -1,4 +1,6 @@
-package com.github.wenjunhuang.lox
+package com.github.wenjunhuang.lox.parser
+
+import com.github.wenjunhuang.lox.{Scanner, Token, TokenType, Value}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

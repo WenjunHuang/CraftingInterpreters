@@ -1,0 +1,2 @@
+Class(Foo,None,Vector(Func(init,Vector(name),Block(Vector(Expr(Set(This(this),name,Variable(name))))))),Vector(Func(greet,Vector(),Block(Vector(Print(Grouping(Binary(Literal(Hello, my name is ),+,Get(This(this),name)))))))))
+Class(Bar,Some(Variable(Foo)),Vector(Func(init,Vector(word),Block(Vector(Expr(Set(This(this),word,Variable(word))))))),Vector(Func(greet,Vector(),Block(Vector(Print(Grouping(Binary(Literal(Hello, my word is ),+,Get(This(this),word)))))))))

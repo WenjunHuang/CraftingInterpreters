@@ -85,12 +85,15 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
 
   override def visitClassStatement(statement: Statement.Class): Unit =
     declare(statement.name)
-    statement.superClass match
-      case Some(superClass) =>
-        resolve(superClass)
-      case None             =>
-
     define(statement.name)
+    statement
+      .superClass
+      .filter(_.name.lexeme == statement.name.lexeme)
+      .foreach { it =>
+        Lox.error(it.name, "A class cannot inherit from itself.")
+      }
+
+    statement.superClass.foreach(resolve)
 
     Using(beginScope()) { scope =>
       scope.put("this", true)

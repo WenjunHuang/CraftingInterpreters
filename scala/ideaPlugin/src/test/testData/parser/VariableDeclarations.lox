@@ -1,0 +1,8 @@
+var a = 1;
+var b;
+var c = a;
+
+var stra = "foo";
+var strb = "bar";
+var strc = stra + strb;
+strc = a;

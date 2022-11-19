@@ -25,16 +25,19 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
     catch case error: RuntimeError => Lox.runtimeError(error)
 
   override def visitGet(expr: Expression.Get): Value =
+    def findClassMember(classValue: ClassValue, name: String, inst: InstanceValue): Option[Value] =
+      classValue.methods.get(name)
+        .map(method => Value.FunctionValue(method.arity, params => method.body(inst, params)))
+        .orElse(inst.fields.get(name))
+
     val obj = evaluate(expr.obj)
     obj match
-      case inst @ Value.InstanceValue(myClass, fields) =>
-        myClass.methods.get(expr.name.lexeme) match
-          case Some(method) => Value.FunctionValue(method.arity, params => method.body(inst, params))
-          case None         =>
-            fields.getOrElse(expr.name.lexeme,
-                             throw RuntimeError(expr.name, s"Undefined property '${expr.name.lexeme}'.")
-            )
-      case _                                           =>
+      case inst @ Value.InstanceValue(myClass, _) =>
+        findClassMember(myClass, expr.name.lexeme, inst)
+          .orElse(myClass.superClass.flatMap(findClassMember(_, expr.name.lexeme, inst)))
+          .getOrElse(throw RuntimeError(expr.name, s"Undefined property '${expr.name.lexeme}'."))
+
+      case _ =>
         throw new RuntimeError(expr.name, "Only instances have properties.")
 
   override def visitLiteral(expr: Expression.Literal): Value = expr.value
@@ -106,7 +109,7 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
 
   override def visitPrintStatement(statement: Statement.Print): Unit =
     val value = evaluate(statement.expression)
-    output.println(value)
+    output.print(value)
     ()
 
   override def visitVariable(expr: Expression.Variable): Value =
@@ -121,8 +124,14 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
     environment.define(statement.name.lexeme, value)
 
   override def visitClassStatement(statement: Statement.Class): Unit =
-    val currentEnvironment                          = environment
-    val initalizers: Vector[Value.InitializerValue] = statement.initializers.map { func =>
+    val currentEnvironment = environment
+    val superClassValue    =
+      for superClass <- statement.superClass
+      yield evaluate(superClass) match
+        case cv: ClassValue => cv
+        case _              => throw RuntimeError(superClass.name, "Superclass must be a class.")
+
+    val initializers: Vector[Value.InitializerValue] = statement.initializers.map { func =>
       Value.InitializerValue(
         func.params.length,
         {
@@ -140,7 +149,7 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
         }
       )
     }
-    val methods: Map[String, Value.MethodValue]     = statement.methods.map[(String, Value.MethodValue)] { func =>
+    val methods: Map[String, Value.MethodValue]      = statement.methods.map[(String, Value.MethodValue)] { func =>
       (func.name.lexeme,
        Value.MethodValue(
          func.params.length,
@@ -160,7 +169,7 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
        )
       )
     }.toMap
-    environment.define(statement.name.lexeme, ClassValue(statement.name.lexeme, initalizers, methods))
+    environment.define(statement.name.lexeme, ClassValue(statement.name.lexeme, superClassValue, initializers, methods))
 
   override def visitAssignment(expr: Expression.Assign): Value =
     val value = evaluate(expr.value)
@@ -206,10 +215,10 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
     val callee = evaluate(expr.callee)
 
     callee match
-      case Value.FunctionValue(_, body)                       =>
+      case Value.FunctionValue(_, body)                                   =>
         val arguments = expr.arguments.map(evaluate)
         body(arguments)
-      case cv @ Value.ClassValue(name, initializers, methods) =>
+      case cv @ Value.ClassValue(name, superClass, initializers, methods) =>
         val arity = expr.arguments.length
         // find initializer with equal arity count
         initializers.find(_.arity == arity) match
@@ -222,7 +231,7 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
           case _                                          =>
             Lox.runtimeError(new RuntimeError(expr.paren, s"Can not find initializer with given arity of $arity"))
             NoValue
-      case _                                                  =>
+      case _                                                              =>
         Lox.runtimeError(new RuntimeError(expr.paren, "Can only call functions or classes."))
         NoValue
 

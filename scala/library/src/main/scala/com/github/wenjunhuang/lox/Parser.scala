@@ -34,10 +34,11 @@ class Parser(private val tokens: Vector[Token]):
   private def classDeclaration(): Statement.Class =
     val name = consume(IDENTIFIER, "Expect class name.")
 
-    val superClass: Option[Expression.Variable] = if matching(LESS) then
-      consume(IDENTIFIER, "Expect superclass name.")
-      Some(Expression.Variable(previous))
-    else None
+    val superClass: Option[Expression.Variable] =
+      if matching(LESS) then
+        consume(IDENTIFIER, "Expect superclass name.")
+        Some(Expression.Variable(previous))
+      else None
 
     consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
 

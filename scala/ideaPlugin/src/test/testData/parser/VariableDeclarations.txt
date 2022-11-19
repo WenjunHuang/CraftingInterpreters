@@ -1,4 +1,4 @@
-FILE(0,28)
+LoxFile(0,28)
   DeclarationImpl(LoxElementType:DECLARATION)(0,10)
     VarDeclImpl(LoxElementType:VAR_DECL)(0,10)
       PsiElement(LoxTokenType:var)('var')(0,3)

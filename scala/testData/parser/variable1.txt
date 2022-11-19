@@ -1,0 +1,7 @@
+Var(a,Some(Literal(1.0)))
+Var(b,None)
+Var(c,Some(Variable(a)))
+Expr(Assign(b,Literal(helloworld)))
+Var(str1,Some(Literal(hello)))
+Var(str2,Some(Literal(world)))
+Var(str3,Some(Binary(Binary(Variable(str1),+,Literal( )),+,Variable(str3))))
