@@ -24,11 +24,12 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
     try for stm <- statements do execute(stm)
     catch case error: RuntimeError => Lox.runtimeError(error)
 
+  private def findClassMember(classValue: ClassValue, name: String, inst: InstanceValue): Option[Value] =
+    classValue.methods.get(name)
+      .map(method => Value.FunctionValue(method.arity, params => method.body(inst, params)))
+      .orElse(inst.fields.get(name))
+
   override def visitGet(expr: Expression.Get): Value =
-    def findClassMember(classValue: ClassValue, name: String, inst: InstanceValue): Option[Value] =
-      classValue.methods.get(name)
-        .map(method => Value.FunctionValue(method.arity, params => method.body(inst, params)))
-        .orElse(inst.fields.get(name))
 
     val obj = evaluate(expr.obj)
     obj match
@@ -109,7 +110,7 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
 
   override def visitPrintStatement(statement: Statement.Print): Unit =
     val value = evaluate(statement.expression)
-    output.print(value)
+    output.println(value)
     ()
 
   override def visitVariable(expr: Expression.Variable): Value =
@@ -124,28 +125,31 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
     environment.define(statement.name.lexeme, value)
 
   override def visitClassStatement(statement: Statement.Class): Unit =
-    val currentEnvironment = environment
     val superClassValue    =
       for superClass <- statement.superClass
       yield evaluate(superClass) match
         case cv: ClassValue => cv
         case _              => throw RuntimeError(superClass.name, "Superclass must be a class.")
+    val currentEnvironment = superClassValue.map { suerClass =>
+      val superEnv = Environment(environment)
+      superEnv.define("super", suerClass)
+      superEnv
+    }.getOrElse(environment)
 
     val initializers: Vector[Value.InitializerValue] = statement.initializers.map { func =>
       Value.InitializerValue(
         func.params.length,
-        {
-          case (instance, params) =>
-            val thisEnv   = Environment(currentEnvironment)
-            thisEnv.define("this", instance)
-            val paramsEnv = Environment(thisEnv)
-            func.params.zip(params).foreach { case (param, value) => paramsEnv.define(param.lexeme, value) }
-            try
-              executeBlock(func.body.statements, Environment(paramsEnv))
+        { (instance, params) =>
+          val thisEnv   = Environment(currentEnvironment)
+          thisEnv.define("this", instance)
+          val paramsEnv = Environment(thisEnv)
+          func.params.zip(params).foreach { case (param, value) => paramsEnv.define(param.lexeme, value) }
+          try
+            executeBlock(func.body.statements, Environment(paramsEnv))
+            instance
+          catch
+            case _: Return =>
               instance
-            catch
-              case _: Return =>
-                instance
         }
       )
     }
@@ -282,4 +286,14 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
     lookUpVariable(expr.keyword, expr) match
       case Some(value) => value
       case None        => throw new RuntimeError(expr.keyword, "Can not use 'this' outside of a class.")
+
+  override def visitSuper(expr: Expression.Super): Value =
+    lookUpVariable(expr.keyword, expr) match
+      case Some(value: ClassValue) =>
+        val inst = environment.get("this").asInstanceOf[Value.InstanceValue]
+        findClassMember(value, expr.method.lexeme, inst)
+          .orElse(value.superClass.flatMap(findClassMember(_, expr.method.lexeme, inst)))
+          .getOrElse(throw Exception(s"Undefined property '${expr.method.lexeme}'."))
+      case _                       => throw new RuntimeError(expr.keyword, "Can not use 'super' outside of a class.")
+
 end Interpreter

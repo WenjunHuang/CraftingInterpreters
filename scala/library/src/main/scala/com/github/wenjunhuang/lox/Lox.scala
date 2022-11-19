@@ -21,6 +21,7 @@ object Lox:
     output.println(s"${error.getMessage}\n[line ${error.token.line}]")
     hasRuntimeError = true
   end runtimeError
+
   private def report(line: Int, where: String, message: String) =
     output.println(s"[line $line] Error $where: $message")
     hadError = true

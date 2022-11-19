@@ -4,8 +4,8 @@ import com.github.wenjunhuang.lox.*
 import com.github.wenjunhuang.lox.interpreter.Resolver.Scope
 
 import scala.collection.mutable
-import scala.util.Using
 import scala.util.Using.Releasable
+import scala.util.{Success, Try, Using}
 
 class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisitor:
   import Resolver.*
@@ -93,13 +93,25 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
         Lox.error(it.name, "A class cannot inherit from itself.")
       }
 
-    statement.superClass.foreach(resolve)
-
-    Using(beginScope()) { scope =>
-      scope.put("this", true)
-      statement.initializers.foreach(resolveFunction(_, FunctionType.Initializer))
-      statement.methods.foreach(resolveFunction(_, FunctionType.Method))
-    }
+    statement.superClass
+      .map { superClass =>
+        currentClass = ClassType.Subclass
+        resolve(superClass)
+        { (inner: () => Try[Unit]) =>
+          Using(beginScope()) { scope =>
+            scope.put("super", true)
+            inner().get
+          }
+        }
+      }
+      .getOrElse { (inner: () => Try[Unit]) => inner() }
+      .apply { () =>
+        Using(beginScope()) { scope =>
+          scope.put("this", true)
+          statement.initializers.foreach(resolveFunction(_, FunctionType.Initializer))
+          statement.methods.foreach(resolveFunction(_, FunctionType.Method))
+        }
+      }
 
   override def visitFunctionStatement(statement: Statement.Func): Unit =
     declare(statement.name)
@@ -171,11 +183,24 @@ class Resolver(interpreter: Interpreter) extends ExprVisitor with StatementVisit
     () => currentFunction = enclosingFunction
 
   override def visitThis(expr: Expression.This): Value =
+    if (currentFunction != FunctionType.Initializer || currentFunction != FunctionType.Method) {
+      Lox.error(expr.keyword, "Cannot use 'this' outside of a class.")
+    }
+    resolveLocal(expr, expr.keyword)
+    Value.NoValue
+
+  override def visitSuper(expr: Expression.Super): Value =
+    if (currentClass == ClassType.None) {
+      Lox.error(expr.keyword, "Cannot use 'super' outside of a class.")
+    } else if (currentClass != ClassType.Subclass) {
+      Lox.error(expr.keyword, "Can't use 'super' in a class with no superclass.")
+    }
     resolveLocal(expr, expr.keyword)
     Value.NoValue
 
   private val scopes          = mutable.Stack[mutable.Map[String, Boolean]]()
   private var currentFunction = FunctionType.None
+  private var currentClass    = ClassType.None
 
 end Resolver
 object Resolver:

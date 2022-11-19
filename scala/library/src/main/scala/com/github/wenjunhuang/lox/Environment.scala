@@ -13,6 +13,13 @@ class Environment private (val enclosing: Option[Environment] = None):
         case Some(e) => e.get(name)
         case None    => throw new RuntimeError(name, s"Undefined variable '${name.lexeme}'.")
 
+  def get(name: String): Value = values.get(name) match
+    case Some(value) => value
+    case None        =>
+      enclosing match
+        case Some(e) => e.get(name)
+        case None    => throw new Exception(s"Undefined variable '${name}'.")
+
   def assign(name: Token, value: Value): Unit =
     values.updateWith(name.lexeme)(_.map(_ => value)) match
       case None =>
@@ -27,6 +34,9 @@ class Environment private (val enclosing: Option[Environment] = None):
 
   def getAt(name: Token, depth: Int): Option[Value] =
     if depth == 0 then values.get(name.lexeme)
+    else enclosing.flatMap(_.getAt(name, depth - 1))
+  def getAt(name: String, depth: Int): Option[Value] =
+    if depth == 0 then values.get(name)
     else enclosing.flatMap(_.getAt(name, depth - 1))
 
 end Environment

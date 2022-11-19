@@ -14,5 +14,6 @@ trait ExprVisitor:
   def visitThis(expr: This): Value
   def visitCall(expr: Call): Value
   def visitSet(expr: Set): Value
+  def visitSuper(expr: Super): Value
 
 end ExprVisitor

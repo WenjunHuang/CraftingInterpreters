@@ -96,4 +96,4 @@ factorExpr ::= unaryExpr (('/'|'*') unaryExpr)*
 unaryExpr ::= ('!'|'-') unaryExpr | callExpr
 callExpr ::= primaryExpr ("(" arguments? ")" | "." IDENTIFIER)*
 arguments ::= expression ("," expression)*
-primaryExpr ::= NUMBER | STRING | 'this' | 'true' | 'false' | 'nil' | IDENTIFIER | '(' expression ')'
+primaryExpr ::= NUMBER | STRING | 'this' | 'true' | 'false' | 'nil' | IDENTIFIER | '(' expression ')' | 'super' '.' IDENTIFIER

@@ -2,12 +2,15 @@ package com.github.wenjunhuang.lox.parser
 
 import com.github.wenjunhuang.lox.*
 import com.github.wenjunhuang.lox.Value.{NoValue, NumericValue}
+import org.apache.commons.io.{Charsets, FileUtils}
+import org.apache.commons.lang3.StringUtils
 import org.scalatest.EitherValues.*
 import org.scalatest.Inside
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.{File, FileReader}
+import java.nio.charset.StandardCharsets
 import scala.io.Source
 import scala.util.Using
 
@@ -17,15 +20,16 @@ class ParserSpec extends AnyFlatSpec with Matchers with Inside:
   private def doTest(testFileName: String) = {
     val sourceName  = File(TestDataPath, s"$testFileName.lox")
     val astFileName = File(TestDataPath, s"$testFileName.txt")
-    Using(Source.fromFile(sourceName)) { source =>
-      Using(Source.fromFile(astFileName)) { ast =>
-        val tokens = Scanner(source.mkString).scanTokens()
-        inside(Parser(tokens).parse()) {
-          case Right(statements) =>
-            statements.map(_.toString).mkString("\n") should be(ast.getLines().mkString("\n"))
-        }
-      }.get
-    }.get
+    val source      = FileUtils.readFileToString(sourceName, StandardCharsets.UTF_8)
+    val result      =
+      StringUtils.replace(FileUtils.readFileToString(astFileName, StandardCharsets.UTF_8), System.lineSeparator(), "\n")
+        .trim
+
+    val tokens = Scanner(source).scanTokens()
+    inside(Parser(tokens).parse()) {
+      case Right(statements) =>
+        statements.map(_.toString).mkString("\n") should be(result)
+    }
   }
 
   "A Parser" should "parse an empty program" in {

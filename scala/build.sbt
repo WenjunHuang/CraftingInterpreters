@@ -22,7 +22,10 @@ lazy val library =
     .in(file("library"))
     .jvmSettings(
       libraryDependencies ++=
-        Seq("org.scalatest" %% "scalatest" % versions.scalaTest % Test)
+        Seq("org.scalatest"     %% "scalatest"     % versions.scalaTest % Test,
+            "org.apache.commons" % "commons-lang3" % "3.12.0"           % Test,
+            "commons-io"         % "commons-io"    % "2.11.0"           % Test
+        )
     )
 //lazy val library = project.settings(
 //  libraryDependencies ++=
@@ -34,7 +37,12 @@ lazy val interpreter =
     .in(file("interpreter"))
     .settings(
       libraryDependencies ++=
-        Seq("org.jline" % "jline-reader" % versions.jline, "org.scalatest" %% "scalatest" % versions.scalaTest % Test)
+        Seq(
+          "org.jline"          % "jline-reader"  % versions.jline,
+          "org.scalatest"     %% "scalatest"     % versions.scalaTest % Test,
+          "org.apache.commons" % "commons-lang3" % "3.12.0"           % Test,
+          "commons-io"         % "commons-io"    % "2.11.0"           % Test
+        )
     )
     .dependsOn(library.jvm)
 
@@ -113,7 +121,7 @@ lazy val ideaPlugin      =
           "org.scala-lang" % "scala3-library_3" % versions.scalaVersion,
           "org.scalatest" %% "scalatest"        % versions.scalaTest % Test
         ),
-      library.jvm / packageMethod        := PackagingMethod.MergeIntoParent(),
+      library.jvm / packageMethod    := PackagingMethod.MergeIntoParent(),
       interpreter / packageMethod    := PackagingMethod.MergeIntoParent()
     )
     .dependsOn(library.jvm, interpreter, macros)

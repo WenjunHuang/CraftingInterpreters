@@ -161,6 +161,7 @@ class Parser(private val tokens: Vector[Token]):
         case None            =>
     consume(TokenType.RIGHT_BRACE, "Expect '}' after block.")
     statements.toVector
+
   private def expressionStatement(): Statement =
     val expr = expression()
     consume(TokenType.SEMICOLON, "Expect ';' after expression.")
@@ -197,6 +198,7 @@ class Parser(private val tokens: Vector[Token]):
         val right    = and()
         Expression.Logical(accum, operator, right)
       }
+
   private def and(): Expression =
     var expr = equality()
     while matching(TokenType.AND) do
@@ -276,6 +278,11 @@ class Parser(private val tokens: Vector[Token]):
 
   private def primary(): Expression =
     if matching(THIS) then Expression.This(previous)
+    else if matching(SUPER) then
+      val keyword = previous
+      consume(DOT, "Expect '.' after 'super'.")
+      val method  = consume(IDENTIFIER, "Expect superclass method name.")
+      Expression.Super(keyword, method)
     else if matching(FALSE) then Expression.Literal(BooleanValue(false))
     else if matching(TRUE) then Expression.Literal(BooleanValue(true))
     else if matching(NIL) then Expression.Literal(NoValue)
