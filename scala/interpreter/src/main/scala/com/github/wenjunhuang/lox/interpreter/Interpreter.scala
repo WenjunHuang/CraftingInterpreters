@@ -125,11 +125,12 @@ class Interpreter(output: PrintStream) extends ExprVisitor with StatementVisitor
     environment.define(statement.name.lexeme, value)
 
   override def visitClassStatement(statement: Statement.Class): Unit =
-    val superClassValue    =
+    val superClassValue =
       for superClass <- statement.superClass
       yield evaluate(superClass) match
         case cv: ClassValue => cv
         case _              => throw RuntimeError(superClass.name, "Superclass must be a class.")
+
     val currentEnvironment = superClassValue.map { suerClass =>
       val superEnv = Environment(environment)
       superEnv.define("super", suerClass)

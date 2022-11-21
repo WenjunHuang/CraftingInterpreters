@@ -2,7 +2,7 @@ package com.github.wenjunhuang.lox
 
 import scala.collection.mutable
 
-enum Value:
+enum Value {
   case NumericValue(value: Double)
   case StringValue(value: String)
   case BooleanValue(value: Boolean)
@@ -17,8 +17,8 @@ enum Value:
   )
   case NoValue
 
-  override def toString: String =
-    this match
+  override def toString: String = {
+    this match {
       case NumericValue(v)           => v.toString
       case StringValue(v)            => v
       case BooleanValue(v)           => v.toString
@@ -28,4 +28,6 @@ enum Value:
       case InitializerValue(_, _)    => "<initializer>"
       case MethodValue(arity, _)     => s"<method arity: $arity>"
       case NoValue                   => "nil"
-end Value
+    }
+  }
+}

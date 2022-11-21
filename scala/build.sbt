@@ -16,21 +16,24 @@ val versions = new {
 ThisBuild / scalaVersion := versions.scalaVersion
 
 lazy val macros  = project
-lazy val library =
-  crossProject(JSPlatform, JVMPlatform)
-    .crossType(CrossType.Pure)
-    .in(file("library"))
-    .jvmSettings(
-      libraryDependencies ++=
-        Seq("org.scalatest"     %% "scalatest"     % versions.scalaTest % Test,
-            "org.apache.commons" % "commons-lang3" % "3.12.0"           % Test,
-            "commons-io"         % "commons-io"    % "2.11.0"           % Test
-        )
+//lazy val library =
+//  crossProject(JSPlatform, JVMPlatform)
+//    .crossType(CrossType.Pure)
+//    .in(file("library"))
+//    .jvmSettings(
+//      libraryDependencies ++=
+//        Seq("org.scalatest"     %% "scalatest"     % versions.scalaTest % Test,
+//            "org.apache.commons" % "commons-lang3" % "3.12.0"           % Test,
+//            "commons-io"         % "commons-io"    % "2.11.0"           % Test
+//        )
+//    )
+lazy val library = project.settings(
+  libraryDependencies ++=
+    Seq("org.scalatest"     %% "scalatest"     % versions.scalaTest % Test,
+        "org.apache.commons" % "commons-lang3" % "3.12.0"           % Test,
+        "commons-io"         % "commons-io"    % "2.11.0"           % Test
     )
-//lazy val library = project.settings(
-//  libraryDependencies ++=
-//    Seq("org.scalatest" %% "scalatest" % versions.scalaTest % Test)
-//)
+)
 
 lazy val interpreter =
   project
@@ -44,7 +47,7 @@ lazy val interpreter =
           "commons-io"         % "commons-io"    % "2.11.0"           % Test
         )
     )
-    .dependsOn(library.jvm)
+    .dependsOn(library)
 
 //lazy val webUI = project
 //  .in(file("webUI"))
@@ -121,7 +124,7 @@ lazy val ideaPlugin      =
           "org.scala-lang" % "scala3-library_3" % versions.scalaVersion,
           "org.scalatest" %% "scalatest"        % versions.scalaTest % Test
         ),
-      library.jvm / packageMethod    := PackagingMethod.MergeIntoParent(),
+      library / packageMethod        := PackagingMethod.MergeIntoParent(),
       interpreter / packageMethod    := PackagingMethod.MergeIntoParent()
     )
-    .dependsOn(library.jvm, interpreter, macros)
+    .dependsOn(library, interpreter, macros)

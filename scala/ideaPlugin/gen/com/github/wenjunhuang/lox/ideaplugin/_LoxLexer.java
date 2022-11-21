@@ -32,7 +32,7 @@ public class _LoxLexer implements FlexLexer {
    *                  at the beginning of a line
    * l is of the form l = 2*k, k a non negative integer
    */
-  private static final int ZZ_LEXSTATE[] = { 
+  private static final int[] ZZ_LEXSTATE = {
      0, 0
   };
 
@@ -46,7 +46,7 @@ public class _LoxLexer implements FlexLexer {
   }
 
   /* The ZZ_CMAP_Z table has 1088 entries */
-  static final char ZZ_CMAP_Z[] = zzUnpackCMap(
+  static final char[] ZZ_CMAP_Z = zzUnpackCMap(
     "\1\0\1\1\1\2\1\3\1\4\1\5\1\6\1\7\1\10\2\11\1\12\1\13\6\14\1\15\23\14\1\16"+
     "\1\14\1\17\1\20\12\14\1\21\10\11\1\22\1\23\1\24\1\25\1\26\1\27\1\30\1\31\1"+
     "\32\1\33\1\34\1\35\2\11\1\14\1\36\3\11\1\37\10\11\1\40\1\41\5\14\1\42\1\43"+
@@ -54,7 +54,7 @@ public class _LoxLexer implements FlexLexer {
     "\53\4\14\1\54\12\11\1\55\u0381\11");
 
   /* The ZZ_CMAP_Y table has 2944 entries */
-  static final char ZZ_CMAP_Y[] = zzUnpackCMap(
+  static final char[] ZZ_CMAP_Y = zzUnpackCMap(
     "\1\0\1\1\1\2\1\3\1\4\1\5\1\6\1\7\1\10\1\1\1\11\1\12\1\13\1\14\1\13\1\14\34"+
     "\13\1\15\1\16\1\17\10\1\1\20\1\21\1\13\1\22\4\13\1\23\10\13\1\24\12\13\1\25"+
     "\1\13\1\26\1\25\1\13\1\27\4\1\1\13\1\30\1\31\2\1\2\13\1\30\1\1\1\32\1\25\5"+
@@ -111,7 +111,7 @@ public class _LoxLexer implements FlexLexer {
     "\1\150\36\1");
 
   /* The ZZ_CMAP_A table has 3072 entries */
-  static final char ZZ_CMAP_A[] = zzUnpackCMap(
+  static final char[] ZZ_CMAP_A = zzUnpackCMap(
     "\11\0\1\3\1\2\3\1\22\0\1\3\1\42\1\15\4\0\1\13\1\33\1\34\1\5\1\41\1\37\1\40"+
     "\1\7\1\4\12\6\1\0\1\31\1\44\1\32\1\43\2\0\32\12\1\0\1\14\2\0\1\11\1\0\1\45"+
     "\1\12\1\47\1\46\1\22\1\16\1\12\1\30\1\21\2\12\1\23\1\12\1\20\1\25\1\51\1\12"+
@@ -372,7 +372,7 @@ public class _LoxLexer implements FlexLexer {
   }
 
   /** the input device */
-  private java.io.Reader zzReader;
+  private final java.io.Reader zzReader;
 
   /** the current state of the DFA */
   private int zzState;
@@ -410,7 +410,7 @@ public class _LoxLexer implements FlexLexer {
 
   /* user code: */
   public _LoxLexer() {
-    this((java.io.Reader)null);
+    this(null);
   }
 
 

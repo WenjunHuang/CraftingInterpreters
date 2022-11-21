@@ -1,6 +1,6 @@
 package com.github.wenjunhuang.lox
 
-enum Expression:
+enum Expression {
   case Literal(value: Value)
   case Logical(left: Expression, operator: Token, right: Expression)
   case Unary(operator: Token, right: Expression)
@@ -14,8 +14,8 @@ enum Expression:
   case This(keyword: Token)
   case Super(keyword: Token, method: Token)
 
-  def accept(visitor: ExprVisitor): Value =
-    this match
+  def accept(visitor: ExprVisitor): Value = {
+    this match {
       case l: Literal  => visitor.visitLiteral(l)
       case l: Logical  => visitor.visitLogical(l)
       case u: Unary    => visitor.visitUnary(u)
@@ -28,10 +28,11 @@ enum Expression:
       case set: Set    => visitor.visitSet(set)
       case t: This     => visitor.visitThis(t)
       case s: Super    => visitor.visitSuper(s)
+    }
+  }
+}
 
-end Expression
-
-object Expression:
+object Expression {
   given Conversion[Value, Expression.Literal] with
     override def apply(x: Value): Expression.Literal = Expression.Literal(x)
-end Expression
+}
