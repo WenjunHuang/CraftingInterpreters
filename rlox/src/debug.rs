@@ -1,5 +1,5 @@
 use crate::chunk::Chunk;
-use crate::chunk::OpCode::{OpConstant, OpReturn};
+use crate::chunk::OpCode::{OpAdd, OpConstant, OpDivide, OpMultiply, OpNegate, OpReturn, OpSubstract};
 
 pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
     println!("== {} ==", name);
@@ -20,7 +20,17 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: u32) -> u32 {
     if instruction == OpReturn as u8 {
         simple_instruction("OP_RETURN", offset)
     } else if instruction == OpConstant as u8 {
-        constant_instruction("OP_CONSTANT",chunk,offset)
+        constant_instruction("OP_CONSTANT", chunk, offset)
+    } else if instruction == OpNegate as u8 {
+        simple_instruction("OP_NEGATE", offset)
+    } else if instruction == OpAdd as u8 {
+        simple_instruction("OP_ADD", offset)
+    } else if instruction == OpSubstract as u8 {
+        simple_instruction("OP_SUBSTRACT", offset)
+    } else if instruction == OpMultiply as u8 {
+        simple_instruction("OP_MULTIPLY", offset)
+    } else if instruction == OpDivide as u8 {
+        simple_instruction("OP_DIVIDE", offset)
     } else {
         println!("Unknown opcode {}", instruction);
         offset + 1

@@ -4,6 +4,11 @@ use crate::value::{Value, ValueArray};
 #[repr(u8)]
 pub enum OpCode {
     OpConstant,
+    OpAdd,
+    OpSubstract,
+    OpMultiply,
+    OpDivide,
+    OpNegate,
     OpReturn,
 }
 

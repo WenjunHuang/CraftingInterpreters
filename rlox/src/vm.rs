@@ -68,6 +68,41 @@ impl VM {
                 let idx = self.read_byte();
                 let constant = self.chunk.constants.values[idx as usize];
                 self.push_value(constant);
+            } else if instruction == OpCode::OpNegate as u8 {
+                match self.pop_value() {
+                    Some(v) => self.push_value(-v),
+                    _ => {}
+                }
+            } else if instruction == OpCode::OpAdd as u8 {
+                let b = self.pop_value();
+                let a = self.pop_value();
+                match (a, b) {
+                    (Some(a), Some(b)) => self.push_value(a + b),
+                    _ => {}
+                }
+            } else if instruction == OpCode::OpSubstract as u8 {
+                let b = self.pop_value();
+                let a = self.pop_value();
+                match (a, b) {
+                    (Some(a), Some(b)) => self.push_value(a - b),
+                    _ => {}
+                }
+            } else if instruction == OpCode::OpMultiply as u8 {
+                let b = self.pop_value();
+                let a = self.pop_value();
+                match (a, b) {
+                    (Some(a), Some(b)) => self.push_value(a * b),
+                    _ => {}
+                }
+            } else if instruction == OpCode::OpDivide as u8 {
+                let b = self.pop_value();
+                let a = self.pop_value();
+                match (a, b) {
+                    (Some(a), Some(b)) => self.push_value(a / b),
+                    _ => {}
+                }
+            } else {
+                println!("Unknown opcode {}", instruction);
             }
         }
     }
