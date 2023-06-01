@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
+
 use crate::chunk::{Chunk, OpCode};
 use crate::debug::{disassemble_chunk, disassemble_instruction};
 use crate::value::{print_value, Value};
-use crate::vm::InterpretResult::InterpretOk;
 
 pub struct VM {
     chunk: Chunk,
@@ -11,9 +11,9 @@ pub struct VM {
 }
 
 pub enum InterpretResult {
-    InterpretOk,
-    InterpretCompileError,
-    InterpretRuntimeError,
+    Ok,
+    CompileError,
+    RuntimeError,
 }
 
 impl VM {
@@ -31,15 +31,15 @@ impl VM {
         byte
     }
 
-    fn push_value(self: &mut Self, value: Value) {
+    fn push_value(&mut self, value: Value) {
         self.stack.push_back(value);
     }
 
-    fn pop_value(self: &mut Self) -> Option<Value> {
+    fn pop_value(&mut self) -> Option<Value> {
         self.stack.pop_back()
     }
 
-    pub fn run(self: &mut Self) -> InterpretResult {
+    pub fn run(&mut self) -> InterpretResult {
         loop {
             if cfg!(feature = "DEBUG_TRACE_EXECUTION") {
                 print!("          ");
@@ -53,56 +53,33 @@ impl VM {
             }
 
 
-            let instruction = self.read_byte();
-            if instruction == OpCode::OpReturn as u8 {
-                match self.pop_value() {
-                    Some(ref v) => {
-                        print_value(v);
+            let code = self.read_byte();
+            match OpCode::try_from(code) {
+                Ok(OpCode::OpConstant) => {
+                    let idx = self.read_byte();
+                    let constant = self.chunk.constants.values[idx as usize];
+                    self.push_value(constant);
+                }
+                Ok(OpCode::OpReturn) => {
+                    if let Some(v) = self.pop_value() {
+                        print_value(&v);
                         println!();
-                        return InterpretOk;
+                        return InterpretResult::Ok;
                     }
-                    None => {}
                 }
-                return InterpretOk;
-            } else if instruction == OpCode::OpConstant as u8 {
-                let idx = self.read_byte();
-                let constant = self.chunk.constants.values[idx as usize];
-                self.push_value(constant);
-            } else if instruction == OpCode::OpNegate as u8 {
-                match self.pop_value() {
-                    Some(v) => self.push_value(-v),
-                    _ => {}
+                Ok(OpCode::OpNegate) => {
+                    if let Some(v) = self.pop_value() {
+                        self.push_value(-v);
+                    }
                 }
-            } else if instruction == OpCode::OpAdd as u8 {
-                let b = self.pop_value();
-                let a = self.pop_value();
-                match (a, b) {
-                    (Some(a), Some(b)) => self.push_value(a + b),
-                    _ => {}
+                Err(_) => {
+                    println!("Unknown opcode {}", code);
+                    return InterpretResult::RuntimeError;
                 }
-            } else if instruction == OpCode::OpSubstract as u8 {
-                let b = self.pop_value();
-                let a = self.pop_value();
-                match (a, b) {
-                    (Some(a), Some(b)) => self.push_value(a - b),
-                    _ => {}
-                }
-            } else if instruction == OpCode::OpMultiply as u8 {
-                let b = self.pop_value();
-                let a = self.pop_value();
-                match (a, b) {
-                    (Some(a), Some(b)) => self.push_value(a * b),
-                    _ => {}
-                }
-            } else if instruction == OpCode::OpDivide as u8 {
-                let b = self.pop_value();
-                let a = self.pop_value();
-                match (a, b) {
-                    (Some(a), Some(b)) => self.push_value(a / b),
-                    _ => {}
-                }
-            } else {
-                println!("Unknown opcode {}", instruction);
+                Ok(OpCode::OpAdd) => self.binary_op(OpCode::OpAdd),
+                Ok(OpCode::OpSubtract) => self.binary_op(OpCode::OpSubtract),
+                Ok(OpCode::OpMultiply) => self.binary_op(OpCode::OpMultiply),
+                Ok(OpCode::OpDivide) => self.binary_op(OpCode::OpDivide),
             }
         }
     }
@@ -111,4 +88,21 @@ impl VM {
         let mut vm = VM::new(chunk);
         vm.run()
     }
+
+    fn binary_op(&mut self, op: OpCode) {
+        if let (Some(b), Some(a)) = (self.pop_value(), self.pop_value()) {
+            match op {
+                OpCode::OpAdd => self.push_value(a + b),
+                OpCode::OpSubtract => self.push_value(a - b),
+                OpCode::OpMultiply => self.push_value(a * b),
+                OpCode::OpDivide => self.push_value(a / b),
+                _ => {}
+            }
+        }
+    }
+
+    // fn interpret(source: &str) -> InterpretResult {
+    //     compile(source);
+    //     return InterpretResult::Ok;
+    // }
 }

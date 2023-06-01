@@ -1,15 +1,41 @@
+use std::cmp::Ord;
+use std::fmt::{Display, Formatter};
+
+use crate::chunk::OpCode::{OpAdd, OpConstant, OpDivide, OpMultiply, OpNegate, OpReturn, OpSubtract};
 use crate::memory::grow_capacity;
 use crate::value::{Value, ValueArray};
 
 #[repr(u8)]
 pub enum OpCode {
-    OpConstant,
-    OpAdd,
-    OpSubstract,
-    OpMultiply,
-    OpDivide,
-    OpNegate,
-    OpReturn,
+    OpConstant = 1,
+    OpReturn = 2,
+    OpNegate = 3,
+    OpAdd = 4,
+    OpSubtract = 5,
+    OpMultiply = 6,
+    OpDivide = 7,
+}
+
+impl TryFrom<u8> for OpCode {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        return if value == OpConstant as u8 {
+            Ok(OpConstant)
+        } else if value == OpReturn as u8 {
+            Ok(OpReturn)
+        } else if value == OpNegate as u8 {
+            Ok(OpNegate)
+        } else if value == OpAdd as u8 {
+            Ok(OpAdd)
+        } else if value == OpSubtract as u8 {
+            Ok(OpSubtract)
+        } else if value == OpMultiply as u8 {
+            Ok(OpMultiply)
+        } else if value == OpDivide as u8 {
+            Ok(OpDivide)
+        } else { Err(()) };
+    }
 }
 
 pub struct Chunk {

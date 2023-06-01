@@ -1,6 +1,6 @@
 val versions = new {
   val scalaVersion  = "3.2.1"
-  val scalaTest     = "3.2.14"
+  val scalaTest     = "3.2.15"
   val monocle       = "3.1.0"
   val scalaJSDom    = "2.2.0"
   val scalaJSReact  = "2.1.1"

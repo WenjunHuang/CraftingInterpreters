@@ -1,5 +1,5 @@
-use crate::chunk::Chunk;
-use crate::chunk::OpCode::{OpAdd, OpConstant, OpDivide, OpMultiply, OpNegate, OpReturn, OpSubstract};
+use crate::chunk::{Chunk, OpCode};
+use crate::chunk::OpCode::{OpConstant, OpReturn, OpNegate};
 
 pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
     println!("== {} ==", name);
@@ -16,24 +16,20 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: u32) -> u32 {
     } else {
         print!("{:4} ", chunk.lines[offset as usize]);
     }
-    let instruction = chunk.code[offset as usize];
-    if instruction == OpReturn as u8 {
-        simple_instruction("OP_RETURN", offset)
-    } else if instruction == OpConstant as u8 {
-        constant_instruction("OP_CONSTANT", chunk, offset)
-    } else if instruction == OpNegate as u8 {
-        simple_instruction("OP_NEGATE", offset)
-    } else if instruction == OpAdd as u8 {
-        simple_instruction("OP_ADD", offset)
-    } else if instruction == OpSubstract as u8 {
-        simple_instruction("OP_SUBSTRACT", offset)
-    } else if instruction == OpMultiply as u8 {
-        simple_instruction("OP_MULTIPLY", offset)
-    } else if instruction == OpDivide as u8 {
-        simple_instruction("OP_DIVIDE", offset)
-    } else {
-        println!("Unknown opcode {}", instruction);
-        offset + 1
+
+    let code = chunk.code[offset as usize];
+    match OpCode::try_from(code) {
+        Ok(OpConstant) => constant_instruction("OP_CONSTANT", chunk, offset),
+        Ok(OpReturn) => simple_instruction("OP_RETURN", offset),
+        Ok(OpNegate) => simple_instruction("OP_NEGATE", offset),
+        Ok(OpCode::OpAdd) => simple_instruction("OP_ADD", offset),
+        Ok(OpCode::OpSubtract) => simple_instruction("OP_SUBTRACT", offset),
+        Ok(OpCode::OpMultiply) => simple_instruction("OP_MULTIPLY", offset),
+        Ok(OpCode::OpDivide) => simple_instruction("OP_DIVIDE", offset),
+        Err(_) => {
+            println!("Unknown opcode {}", code);
+            offset + 1
+        }
     }
 }
 
