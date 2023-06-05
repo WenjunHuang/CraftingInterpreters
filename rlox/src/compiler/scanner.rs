@@ -1,13 +1,14 @@
-pub struct Scanner<'a> {
+pub struct Scanner {
     start: i32,
     current: i32,
     line: i32,
-    source: &'a str,
+    pub source: String,
 }
 
+#[derive(PartialEq, Eq, Hash, Copy, Clone)]
 pub enum TokenType {
-    LeftParam,
-    RightParam,
+    LeftParen,
+    RightParen,
     LeftBrace,
     RightBrace,
     Comma,
@@ -50,16 +51,16 @@ pub enum TokenType {
     Eof,
 }
 
-pub struct Token<'a> {
+#[derive(Copy, Clone)]
+pub struct Token {
     pub token_type: TokenType,
     pub start: i32,
     pub length: i32,
     pub line: i32,
-    pub source: &'a str,
 }
 
-impl<'a> Scanner<'a> {
-    pub fn new(source: &str) -> Scanner {
+impl Scanner {
+    pub fn new(source: String) -> Scanner {
         Scanner {
             start: 0,
             current: 0,
@@ -78,8 +79,8 @@ impl<'a> Scanner<'a> {
 
         let c = self.advance();
         return match c {
-            '(' => self.make_token(TokenType::LeftParam),
-            ')' => self.make_token(TokenType::RightParam),
+            '(' => self.make_token(TokenType::LeftParen),
+            ')' => self.make_token(TokenType::RightParen),
             '{' => self.make_token(TokenType::LeftBrace),
             '}' => self.make_token(TokenType::RightBrace),
             ';' => self.make_token(TokenType::Semicolon),
@@ -132,7 +133,68 @@ impl<'a> Scanner<'a> {
                 break;
             }
         }
-        return self.make_token(TokenType::Identifier);
+        return self.make_token(self.identifier_type());
+    }
+
+    fn identifier_type(&self) -> TokenType {
+        return
+            if let Some(c) = self.source.chars().nth(self.start as usize) {
+                match c {
+                    'a' => self.check_keyword(1, 2, "nd", TokenType::And),
+                    'c' => self.check_keyword(1, 4, "lass", TokenType::Class),
+                    'e' => self.check_keyword(1, 3, "lse", TokenType::Else),
+                    'f' => {
+                        if self.current - self.start > 1 {
+                            match self.source.chars().nth((self.start + 1) as usize) {
+                                Some('a') => self.check_keyword(2, 3, "lse", TokenType::False),
+                                Some('o') => self.check_keyword(2, 1, "r", TokenType::For),
+                                Some('u') => self.check_keyword(2, 1, "n", TokenType::Fun),
+                                _ => TokenType::Identifier
+                            }
+                        } else {
+                            TokenType::Identifier
+                        }
+                    }
+                    'i' => self.check_keyword(1, 1, "f", TokenType::If),
+                    'n' => self.check_keyword(1, 2, "il", TokenType::Nil),
+                    'o' => self.check_keyword(1, 1, "r", TokenType::Or),
+                    'p' => self.check_keyword(1, 4, "rint", TokenType::Print),
+                    'r' => self.check_keyword(1, 5, "eturn", TokenType::Return),
+                    's' => self.check_keyword(1, 4, "uper", TokenType::Super),
+                    't' => {
+                        if self.current - self.start > 1 {
+                            match self.source.chars().nth((self.start + 1) as usize) {
+                                Some('h') => self.check_keyword(2, 2, "is", TokenType::This),
+                                Some('r') => self.check_keyword(2, 2, "ue", TokenType::True),
+                                _ => TokenType::Identifier
+                            }
+                        } else {
+                            TokenType::Identifier
+                        }
+                    }
+                    'v' => self.check_keyword(1, 2, "ar", TokenType::Var),
+                    'w' => self.check_keyword(1, 4, "hile", TokenType::While),
+                    _ => TokenType::Identifier
+                }
+            } else {
+                TokenType::Identifier
+            };
+    }
+
+    fn check_keyword(&self, start: i32, length: i32, rest: &str, token_type: TokenType) -> TokenType {
+        if self.current - self.start == start + length {
+            let mut idx = 0;
+            while idx < length {
+                if self.source.chars().nth((self.start + start + idx) as usize) == rest.chars().nth(idx as usize) {
+                    idx += 1;
+                    continue;
+                } else {
+                    return TokenType::Identifier;
+                }
+            }
+            return token_type;
+        }
+        return TokenType::Identifier;
     }
 
     fn is_alpha(&self, c: char) -> bool {
@@ -243,17 +305,15 @@ impl<'a> Scanner<'a> {
             start: self.start,
             length: self.current - self.start,
             line: self.line,
-            source: &self.source[self.start as usize..self.current as usize],
         }
     }
 
-    fn error_token(&self, message: &'static str) -> Token {
+    fn error_token(&self, message: &str) -> Token {
         Token {
             token_type: TokenType::Error,
             start: 0,
             length: message.len() as i32,
             line: self.line,
-            source: message,
         }
     }
 }

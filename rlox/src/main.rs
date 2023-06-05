@@ -5,6 +5,7 @@ use std::io::stdin;
 use std::process::exit;
 
 use crate::chunk::OpCode::*;
+use crate::compiler::compile::compile;
 
 mod chunk;
 mod common;
@@ -34,13 +35,20 @@ fn repl() {
         let mut line = String::new();
         match stdin().read_line(&mut line) {
             Ok(_) => {
-                // interpret(line);
+                interpret(line);
             }
             Err(_) => {
                 println!("Error");
                 return;
             }
         }
+    }
+}
+
+fn interpret(source: String) {
+    if let Ok(chunk) = compile(source) {
+        let mut vm = vm::VM::new(chunk);
+        vm.run();
     }
 }
 

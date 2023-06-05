@@ -1,2 +1,4 @@
-mod compile;
-mod scanner;
+pub mod compile;
+pub mod scanner;
+pub mod parser;
+
