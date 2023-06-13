@@ -1,11 +1,11 @@
 use std::env::args;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, stdout, Write};
 use std::io::stdin;
 use std::process::exit;
 
-use crate::chunk::OpCode::*;
 use crate::compiler::compile::compile;
+use crate::vm::{InterpretError, InterpretResult};
 
 mod chunk;
 mod common;
@@ -14,6 +14,8 @@ mod debug;
 mod value;
 mod vm;
 mod compiler;
+mod function;
+mod native_function;
 
 fn main() {
     // parser command line arguments
@@ -31,24 +33,32 @@ fn main() {
 fn repl() {
     loop {
         print!("> ");
+        stdout().flush();
         // read a line from stdin
         let mut line = String::new();
-        match stdin().read_line(&mut line) {
-            Ok(_) => {
-                interpret(line);
-            }
-            Err(_) => {
-                println!("Error");
-                return;
+        loop {
+            match stdin().read_line(&mut line) {
+                Ok(size) => {
+                    if size == 1 {
+                        interpret(line);
+                        break;
+                    }
+                }
+                Err(_) => {
+                    println!("Error");
+                    return;
+                }
             }
         }
     }
 }
 
-fn interpret(source: String) {
+fn interpret(source: String) -> InterpretResult {
     if let Ok(chunk) = compile(source) {
         let mut vm = vm::VM::new(chunk);
-        vm.run();
+        vm.run()
+    } else {
+        Err(InterpretError::CompileError)
     }
 }
 

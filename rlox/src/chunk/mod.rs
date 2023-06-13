@@ -7,7 +7,7 @@ use crate::memory::grow_capacity;
 use crate::value::{Value, ValueArray};
 
 #[repr(u8)]
-#[derive(Copy, Clone,TryFromPrimitive,IntoPrimitive)]
+#[derive(Copy, Clone, TryFromPrimitive, IntoPrimitive)]
 pub enum OpCode {
     OpConstant,
     OpNil,
@@ -28,14 +28,21 @@ pub enum OpCode {
     OpDefineGlobal,
     OpGetGlobal,
     OpSetGlobal,
+    OpGetLocal,
+    OpSetLocal,
+    OpJumpIfFalse,
+    OpJump,
+    OpLoop,
+    OpCall,
 }
 
+#[derive(Debug)]
 pub struct Chunk {
     pub code: Vec<u8>,
     pub lines: Vec<i32>,
     pub constants: ValueArray,
-    pub capacity: u32,
-    pub count: u32,
+    pub capacity: usize,
+    pub count: usize,
 }
 
 impl Chunk {
@@ -61,13 +68,17 @@ impl Chunk {
             self.lines.resize(self.capacity as usize, 0);
         }
 
-        self.code[self.count as usize] = byte;
-        self.lines[self.count as usize] = line;
+        self.code[self.count] = byte;
+        self.lines[self.count] = line;
         self.count += 1;
     }
 
     pub fn add_constant(&mut self, value: Value) -> u32 {
         self.constants.write_value(value);
-        self.constants.count - 1
+        (self.constants.count - 1) as u32
+    }
+
+    pub fn get_constant(&self, index: usize) -> Option<&Value> {
+        self.constants.values.get(index)
     }
 }

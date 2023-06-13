@@ -1,4 +1,4 @@
-pub fn grow_capacity(capacity: u32) -> u32 {
+pub fn grow_capacity(capacity: usize) -> usize {
     if capacity < 8 {
         return 8;
     }

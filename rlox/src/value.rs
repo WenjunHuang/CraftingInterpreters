@@ -1,6 +1,8 @@
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
+use crate::function::Function;
 use crate::memory::grow_capacity;
+use crate::native_function::NativeFunction;
 
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -8,6 +10,8 @@ pub enum Value {
     Number(f64),
     Bool(bool),
     StringValue(Rc<String>),
+    FunctionValue(Rc<Function>),
+    NativeFunctionValue(Rc<NativeFunction>),
 }
 
 impl PartialEq<Self> for Value {
@@ -17,6 +21,7 @@ impl PartialEq<Self> for Value {
             (Value::Number(n1), Value::Number(n2)) => n1 == n2,
             (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
             (Value::StringValue(s1), Value::StringValue(s2)) => s1 == s2,
+            (Value::FunctionValue(f1), Value::FunctionValue(f2)) => Rc::ptr_eq(f1, f2),
             _ => false,
         }
     }
@@ -31,14 +36,17 @@ impl Display for Value {
             Value::Number(n) => write!(f, "{}", n),
             Value::Bool(b) => write!(f, "{}", b),
             Value::StringValue(s) => write!(f, "{}", s),
+            Value::FunctionValue(fun) => write!(f, "{}", fun),
+            Value::NativeFunctionValue(fun) => write!(f, "{}", fun),
         }
     }
 }
 
+#[derive(Debug)]
 pub struct ValueArray {
     pub values: Vec<Value>,
-    pub capacity: u32,
-    pub count: u32,
+    pub capacity: usize,
+    pub count: usize,
 }
 
 impl ValueArray {

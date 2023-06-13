@@ -49,6 +49,9 @@ pub enum TokenType {
     While,
     Error,
     Eof,
+    Switch,
+    Case,
+    Default,
 }
 
 #[derive(Copy, Clone)]

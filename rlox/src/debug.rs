@@ -4,18 +4,18 @@ use crate::chunk::OpCode::{OpConstant, OpReturn, OpNegate};
 
 pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
     println!("== {} ==", name);
-    let mut offset = 0;
+    let mut offset: usize = 0;
     while offset < chunk.count {
         offset = disassemble_instruction(chunk, offset);
     }
 }
 
-pub fn disassemble_instruction(chunk: &Chunk, offset: u32) -> u32 {
+pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
     print!("{:04} ", offset);
-    if offset > 0 && chunk.lines[offset as usize] == chunk.lines[(offset - 1) as usize] {
+    if offset > 0 && chunk.lines[offset] == chunk.lines[offset - 1] {
         print!("   | ");
     } else {
-        print!("{:4} ", chunk.lines[offset as usize]);
+        print!("{:4} ", chunk.lines[offset]);
     }
 
     let code = chunk.code[offset as usize];
@@ -39,6 +39,12 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: u32) -> u32 {
         Ok(OpCode::OpDefineGlobal) => constant_instruction("OP_DEFINE_GLOBAL", chunk, offset),
         Ok(OpCode::OpGetGlobal) => constant_instruction("OP_GET_GLOBAL", chunk, offset),
         Ok(OpCode::OpSetGlobal) => constant_instruction("OP_SET_GLOBAL", chunk, offset),
+        Ok(OpCode::OpGetLocal) => byte_instruction("OP_GET_LOCAL", chunk, offset),
+        Ok(OpCode::OpSetLocal) => byte_instruction("OP_SET_LOCAL", chunk, offset),
+        Ok(OpCode::OpJumpIfFalse) => jump_instruction("OP_JUMP_IF_ELSE", 1, chunk, offset),
+        Ok(OpCode::OpJump) => jump_instruction("OP_JUMP", 1, chunk, offset),
+        Ok(OpCode::OpLoop) => jump_instruction("OP_LOOP", -1, chunk, offset),
+        Ok(OpCode::OpCall) => byte_instruction("OP_CALL", chunk, offset),
         Err(_) => {
             println!("Unknown opcode {}", code);
             offset + 1
@@ -46,12 +52,24 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: u32) -> u32 {
     }
 }
 
-fn simple_instruction(name: &str, offset: u32) -> u32 {
+fn jump_instruction(name: &str, sign: i32, chunk: &Chunk, offset: usize) -> usize {
+    let jump = ((chunk.code[(offset + 1) as usize] as i32) << 8) | chunk.code[(offset + 2) as usize] as i32;
+    println!("{:16} {:4} -> {}", name, offset, offset as i32 + 3 + sign * jump);
+    offset + 3
+}
+
+fn byte_instruction(name: &str, chunk: &Chunk, offset: usize) -> usize {
+    let slot = chunk.code[(offset + 1) as usize];
+    println!("{:16} {:4} ", name, slot);
+    offset + 2
+}
+
+fn simple_instruction(name: &str, offset: usize) -> usize {
     println!("{}", name);
     offset + 1
 }
 
-fn constant_instruction(name: &str, chunk: &Chunk, offset: u32) -> u32 {
+fn constant_instruction(name: &str, chunk: &Chunk, offset: usize) -> usize {
     let constant = chunk.code[(offset + 1) as usize];
     println!("{:16} {:4} '{}'", name, constant, chunk.constants.values[constant as usize]);
     offset + 2
