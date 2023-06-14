@@ -436,7 +436,8 @@ impl Parser {
     }
 
     pub fn variable(&mut self, can_assign: bool) {
-        self.named_variable(self.get_token_name(self.previous.as_ref().unwrap()), can_assign);
+        let name = self.get_token_name(self.previous.as_ref().unwrap()).to_string();
+        self.named_variable(&name, can_assign);
     }
 
     pub fn and(&mut self, _can_assign: bool) {
@@ -457,15 +458,15 @@ impl Parser {
 
 
     fn named_variable(&mut self, name: &str, can_assign: bool) -> Result<(), String> {
-        let (arg, get_op, set_op) = match Self::resolve_local(&self.compiler, &name)? {
+        let (arg, get_op, set_op) = match Self::resolve_local(&self.compiler, name)? {
             Some(local) => {
                 (local.index as u8, OpCode::OpGetLocal, OpCode::OpSetLocal)
             }
             None => {
-                if let Some(upvalue) = self.resolve_upvalue(&name) {
+                if let Some(upvalue) = self.resolve_upvalue(name)? {
                     (upvalue as u8, OpCode::OpGetUpvalue, OpCode::OpSetUpvalue)
                 } else {
-                    (self.identifier_constant(name), OpCode::OpGetGlobal, OpCode::OpSetGlobal)
+                    (self.identifier_constant(name.to_string()), OpCode::OpGetGlobal, OpCode::OpSetGlobal)
                 }
             }
         };
@@ -481,14 +482,14 @@ impl Parser {
         Ok(())
     }
 
-    fn resolve_upvalue(&mut self, name: &str) -> Option<u8> {
+    fn resolve_upvalue(&mut self, name: &str) -> Result<Option<u8>, String> {
         match self.compiler.enclosing {
-            None => None,
+            None => Ok(None),
             Some(ref mut enclosing) => {
-                match Self::resolve_local(enclosing, name) {
+                match Self::resolve_local(enclosing, name)? {
                     Some(local) => {
                         let index = local.index as u8;
-                        Some(Self::add_upvalue(&mut self.compiler, index, true))
+                        Self::add_upvalue(&mut self.compiler, index, true).map(|x| Some(x))
                     }
                     None => {
                         Self::resolve_compiler_upvalue(enclosing, name)
@@ -498,17 +499,17 @@ impl Parser {
         }
     }
 
-    fn resolve_compiler_upvalue(compiler: &mut Compiler, name: &str) -> Option<u8> {
-        match Self::resolve_local(compiler, name, error) {
+    fn resolve_compiler_upvalue(compiler: &mut Compiler, name: &str) -> Result<Option<u8>, String> {
+        match Self::resolve_local(compiler, name)? {
             Some(local) => {
                 let index = local.index as u8;
-                Some(Self::add_upvalue(compiler, index, true, error))
+                Self::add_upvalue(compiler, index, true).map(|x| Some(x))
             }
             None => {
                 match compiler.enclosing {
-                    None => None,
+                    None => Ok(None),
                     Some(ref mut enclosing) =>
-                        self.resolve_compiler_upvalue(enclosing, name)
+                        Self::resolve_compiler_upvalue(enclosing, name)
                 }
             }
         }
@@ -612,7 +613,7 @@ impl Parser {
             let mut value = self.scanner.source[token.start as usize..token.start as usize + token.length as usize].to_string();
             value.remove(value.len() - 1);
             value.remove(0);
-            self.emit_constant(Value::StringValue(Rc::new(value)));
+            self.emit_constant(Value::StringValue(value));
         }
     }
 
@@ -927,8 +928,8 @@ impl Parser {
         self.emit_opcode(OpCode::OpPop);
     }
 
-    fn identifier_constant(&mut self, name: &str) -> u8 {
-        return self.make_constant(Value::StringValue(name.to_string()));
+    fn identifier_constant(&mut self, name: String) -> u8 {
+        return self.make_constant(Value::StringValue(name));
     }
 
     fn parse_variable(&mut self, error_message: &str) -> Variable {
@@ -937,7 +938,7 @@ impl Parser {
         if self.compiler.scope_depth > 0 {
             return Variable::LocalVariable((self.compiler.locals.len() - 1) as u8);
         }
-        return Variable::GlobalVariable(self.identifier_constant(self.get_token_name(self.previous.as_ref().unwrap())));
+        return Variable::GlobalVariable(self.identifier_constant(self.get_token_name(self.previous.as_ref().unwrap()).to_string()));
     }
 
     fn declare_variable(&mut self) {
@@ -956,7 +957,7 @@ impl Parser {
                     self.error("Already variable with this name in this scope.");
                 }
             }
-            self.add_local(token_name);
+            self.add_local(token_name.to_string());
         }
     }
 
@@ -964,14 +965,14 @@ impl Parser {
         self.scanner.source.get(start..(start + length)).unwrap().to_string()
     }
 
-    fn add_local(&mut self, name: &str) {
+    fn add_local(&mut self, name:String) {
         if self.compiler.locals.len() == u8::MAX as usize {
             self.error("Too many local variables in function.");
             return;
         }
 
         let mut local = Local::new();
-        local.name = name.to_string();
+        local.name = name;
         local.depth = -1;
         local.index = self.compiler.locals.len() as i32;
         self.compiler.locals.push(local);

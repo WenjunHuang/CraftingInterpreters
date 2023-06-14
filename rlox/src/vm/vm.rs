@@ -193,7 +193,7 @@ impl VM {
                 }
                 Ok(OpCode::OpGetGlobal) => {
                     let name = self.read_string()?;
-                    match self.globals.get(name.as_ref()) {
+                    match self.globals.get(&name) {
                         Some(v) => {
                             self.push_value(v.clone());
                         }
@@ -205,7 +205,7 @@ impl VM {
                 }
                 Ok(OpCode::OpSetGlobal) => {
                     let name = self.read_string()?;
-                    if self.globals.contains_key(name.as_ref()) {
+                    if self.globals.contains_key(&name) {
                         let value = self.pop_value().unwrap();
                         self.globals.insert(name.to_string(), value);
                     } else {
@@ -315,7 +315,7 @@ impl VM {
         }
     }
 
-    fn read_string(&mut self) -> Result<Rc<String>, InterpretError> {
+    fn read_string(&mut self) -> Result<String, InterpretError> {
         let b = self.read_byte();
         return if let Some(StringValue(name)) = self.current_chunk().constants.read_value(b as usize) {
             Ok(name)
@@ -340,7 +340,7 @@ impl VM {
             }
             (Some(StringValue(b)), Some(StringValue(a))) => {
                 match op {
-                    OpCode::OpAdd => self.push_value(StringValue(Rc::new(format!("{}{}", a, b)))),
+                    OpCode::OpAdd => self.push_value(StringValue(format!("{}{}", a, b))),
                     _ => {}
                 }
             }
