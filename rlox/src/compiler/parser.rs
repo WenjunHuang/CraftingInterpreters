@@ -965,7 +965,7 @@ impl Parser {
         self.scanner.source.get(start..(start + length)).unwrap().to_string()
     }
 
-    fn add_local(&mut self, name:String) {
+    fn add_local(&mut self, name: String) {
         if self.compiler.locals.len() == u8::MAX as usize {
             self.error("Too many local variables in function.");
             return;
