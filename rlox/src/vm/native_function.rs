@@ -1,5 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
-use crate::value::Value;
+use crate::vm::value::Value;
 
 pub type NativeFn = fn(&[Value]) -> Value;
 

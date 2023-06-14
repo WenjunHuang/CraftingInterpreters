@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 pub struct Scanner {
     start: i32,
     current: i32,
@@ -54,7 +56,7 @@ pub enum TokenType {
     Default,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy,Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub start: i32,

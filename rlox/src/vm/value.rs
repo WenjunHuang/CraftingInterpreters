@@ -1,17 +1,19 @@
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
-use crate::function::Function;
-use crate::memory::grow_capacity;
-use crate::native_function::NativeFunction;
+use crate::vm::closure::Closure;
+use crate::vm::function::Function;
+use crate::vm::memory::grow_capacity;
+use crate::vm::native_function::NativeFunction;
 
 #[derive(Clone, Debug)]
 pub enum Value {
     Nil,
     Number(f64),
     Bool(bool),
-    StringValue(Rc<String>),
+    StringValue(String),
     FunctionValue(Rc<Function>),
     NativeFunctionValue(Rc<NativeFunction>),
+    ClosureValue(Rc<Closure>)
 }
 
 impl PartialEq<Self> for Value {
@@ -38,6 +40,7 @@ impl Display for Value {
             Value::StringValue(s) => write!(f, "{}", s),
             Value::FunctionValue(fun) => write!(f, "{}", fun),
             Value::NativeFunctionValue(fun) => write!(f, "{}", fun),
+            Value::ClosureValue(closure) => write!(f, "{}", closure),
         }
     }
 }
@@ -45,27 +48,22 @@ impl Display for Value {
 #[derive(Debug)]
 pub struct ValueArray {
     pub values: Vec<Value>,
-    pub capacity: usize,
-    pub count: usize,
 }
 
 impl ValueArray {
     pub fn new() -> ValueArray {
         ValueArray {
             values: Vec::new(),
-            capacity: 0,
-            count: 0,
         }
     }
-    pub fn write_value(&mut self, value: Value) {
-        if self.capacity < self.count + 1 {
-            let old_capacity = self.capacity;
-            self.capacity = grow_capacity(old_capacity);
-            self.values.resize(self.capacity as usize, Value::Nil);
+    pub fn write_value(&mut self, value: Value) -> usize {
+        if self.values.capacity() < self.values.len() + 1 {
+            let new_capacity = grow_capacity(self.values.capacity());
+            self.values.resize(new_capacity, Value::Nil);
         }
 
-        self.values[self.count as usize] = value;
-        self.count += 1;
+        self.values.push(value);
+        self.values.len() - 1
     }
 
     pub fn read_value(&self, index: usize) -> Option<Value> {

@@ -9,8 +9,8 @@ use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use crate::chunk::{Chunk, OpCode};
 use crate::compiler::scanner::{Scanner, Token, TokenType};
-use crate::function::{Function, FunctionType};
-use crate::value::Value;
+use crate::vm::function::{Function, FunctionType};
+use crate::vm::value::Value;
 
 #[repr(u8)]
 #[derive(Copy, Clone, Eq, Ord, PartialOrd, PartialEq, IntoPrimitive, TryFromPrimitive)]
@@ -50,9 +50,9 @@ enum Variable {
     LocalVariable(u8),
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 struct Local {
-    name: Token,
+    name: String,
     index: i32,
     depth: i32,
 }
@@ -60,23 +60,34 @@ struct Local {
 impl Local {
     fn new() -> Local {
         Local {
-            name: Token {
-                token_type: TokenType::Error,
-                start: 0,
-                length: 0,
-                line: 0,
-            },
+            name: "".to_string(),
             index: -1,
             depth: -1,
         }
     }
 }
 
+struct UpValue {
+    index: u8,
+    is_local: bool,
+}
+
 pub struct Compiler {
-    pub enclosing: Option<Box<Compiler>>,
+    enclosing: Option<Box<Compiler>>,
     pub function: Function,
     locals: Vec<Local>,
+    upvalues: Vec<UpValue>,
     scope_depth: i32,
+}
+
+impl Compiler {
+    pub(crate) fn add_upvalue(&mut self, index: u8, is_local: bool) -> usize {
+        self.upvalues.push(UpValue {
+            index,
+            is_local,
+        });
+        return self.upvalues.len() - 1;
+    }
 }
 
 impl Compiler {
@@ -88,13 +99,12 @@ impl Compiler {
             function: Function::new(0, chunk, function_type),
             // allocate u8::max Locals to locals
             locals: Vec::with_capacity(u8::MAX as usize),
+            upvalues: Vec::with_capacity(u8::MAX as usize),
             scope_depth: 0,
         };
         let mut local = Local::new();
         local.depth = 0;
         local.index = 0;
-        local.name.length = 0;
-        local.name.start = 0;
         compiler.locals.push(local);
         return compiler;
     }
@@ -328,6 +338,12 @@ pub struct Parser {
 }
 
 impl Parser {
+    pub(crate) fn current_function(self) -> Function {
+        self.compiler.function
+    }
+}
+
+impl Parser {
     pub(crate) fn had_error(&self) -> bool {
         self.error.borrow().had_error
     }
@@ -420,7 +436,7 @@ impl Parser {
     }
 
     pub fn variable(&mut self, can_assign: bool) {
-        self.named_variable(self.previous.as_ref().unwrap().clone(), can_assign);
+        self.named_variable(self.get_token_name(self.previous.as_ref().unwrap()), can_assign);
     }
 
     pub fn and(&mut self, _can_assign: bool) {
@@ -439,13 +455,18 @@ impl Parser {
         self.patch_jump(end_jump);
     }
 
-    fn named_variable(&mut self, name: Token, can_assign: bool) {
-        let (arg, get_op, set_op) = match self.resolve_local(&name) {
+
+    fn named_variable(&mut self, name: &str, can_assign: bool) -> Result<(), String> {
+        let (arg, get_op, set_op) = match Self::resolve_local(&self.compiler, &name)? {
             Some(local) => {
                 (local.index as u8, OpCode::OpGetLocal, OpCode::OpSetLocal)
             }
             None => {
-                (self.identifier_constant(name), OpCode::OpGetGlobal, OpCode::OpSetGlobal)
+                if let Some(upvalue) = self.resolve_upvalue(&name) {
+                    (upvalue as u8, OpCode::OpGetUpvalue, OpCode::OpSetUpvalue)
+                } else {
+                    (self.identifier_constant(name), OpCode::OpGetGlobal, OpCode::OpSetGlobal)
+                }
             }
         };
 
@@ -457,18 +478,64 @@ impl Parser {
             self.emit_opcode(get_op);
             self.emit_byte(arg);
         }
+        Ok(())
     }
 
-    fn resolve_local(&self, name: &Token) -> Option<&Local> {
-        for local in self.compiler.locals.iter().rev() {
-            if self.identifiers_equal(name, &local.name) {
-                if local.depth == -1 {
-                    self.error("Cannot read local variable in its own initializer.");
+    fn resolve_upvalue(&mut self, name: &str) -> Option<u8> {
+        match self.compiler.enclosing {
+            None => None,
+            Some(ref mut enclosing) => {
+                match Self::resolve_local(enclosing, name) {
+                    Some(local) => {
+                        let index = local.index as u8;
+                        Some(Self::add_upvalue(&mut self.compiler, index, true))
+                    }
+                    None => {
+                        Self::resolve_compiler_upvalue(enclosing, name)
+                    }
                 }
-                return Some(local);
             }
         }
-        None
+    }
+
+    fn resolve_compiler_upvalue(compiler: &mut Compiler, name: &str) -> Option<u8> {
+        match Self::resolve_local(compiler, name, error) {
+            Some(local) => {
+                let index = local.index as u8;
+                Some(Self::add_upvalue(compiler, index, true, error))
+            }
+            None => {
+                match compiler.enclosing {
+                    None => None,
+                    Some(ref mut enclosing) =>
+                        self.resolve_compiler_upvalue(enclosing, name)
+                }
+            }
+        }
+    }
+
+    fn add_upvalue(compiler: &mut Compiler, index: u8, is_local: bool) -> Result<u8, String> {
+        match compiler.upvalues.iter().rev().find(|upvalue| upvalue.index == index && upvalue.is_local == is_local) {
+            Some(upvalue) => Ok(upvalue.index),
+            None =>
+                if compiler.upvalues.len() == u8::MAX as usize {
+                    Err("Too many closure variables in functions.".to_string())
+                } else {
+                    Ok(compiler.add_upvalue(index, is_local) as u8)
+                }
+        }
+    }
+
+    fn resolve_local<'a>(compiler: &'a Compiler, name: &str) -> Result<Option<&'a Local>, String> {
+        for local in compiler.locals.iter().rev() {
+            if local.name == name {
+                if local.depth == -1 {
+                    return Err("Cannot read local variable in its own initializer.".to_string());
+                }
+                return Ok(Some(local));
+            }
+        }
+        return Ok(None);
     }
 
     fn error_at_current(&mut self, message: &str) {
@@ -649,7 +716,7 @@ impl Parser {
 
     fn make_constant(&mut self, value: Value) -> u8 {
         let constant = self.chunk().add_constant(value);
-        if constant > (u8::MAX as u32) {
+        if constant > (u8::MAX as usize) {
             self.error("Too many constants in one chunk().");
             return 0;
         }
@@ -860,9 +927,8 @@ impl Parser {
         self.emit_opcode(OpCode::OpPop);
     }
 
-    fn identifier_constant(&mut self, name: Token) -> u8 {
-        let identifier = self.scanner.source[name.start as usize..name.start as usize + name.length as usize].to_string();
-        return self.make_constant(Value::StringValue(Rc::new(identifier)));
+    fn identifier_constant(&mut self, name: &str) -> u8 {
+        return self.make_constant(Value::StringValue(name.to_string()));
     }
 
     fn parse_variable(&mut self, error_message: &str) -> Variable {
@@ -871,7 +937,7 @@ impl Parser {
         if self.compiler.scope_depth > 0 {
             return Variable::LocalVariable((self.compiler.locals.len() - 1) as u8);
         }
-        return Variable::GlobalVariable(self.identifier_constant(self.previous.unwrap()));
+        return Variable::GlobalVariable(self.identifier_constant(self.get_token_name(self.previous.as_ref().unwrap())));
     }
 
     fn declare_variable(&mut self) {
@@ -880,47 +946,32 @@ impl Parser {
         }
 
         if let Some(token) = self.previous {
+            let token_name = self.scanner.source.get(token.start as usize..(token.start + token.length) as usize).unwrap();
             for local in self.compiler.locals.iter().rev() {
                 if local.depth != -1 && local.depth < self.compiler.scope_depth {
                     break;
                 }
 
-                if self.identifiers_equal(&token, &local.name) {
+                if token_name == local.name {
                     self.error("Already variable with this name in this scope.");
                 }
             }
-            self.add_local(token);
+            self.add_local(token_name);
         }
     }
 
     fn copy_string(&self, start: usize, length: usize) -> String {
-        self.scanner.source.get(start..(start + length) as usize).unwrap().to_string()
+        self.scanner.source.get(start..(start + length)).unwrap().to_string()
     }
 
-    fn identifiers_equal(&self, a: &Token, b: &Token) -> bool {
-        if a.length != b.length {
-            return false;
-        }
-
-        let a_name = self.scanner.source.get(a.start as usize..(a.start + a.length) as usize);
-        let b_name = self.scanner.source.get(b.start as usize..(b.start + b.length) as usize);
-        match (a_name, b_name) {
-            (Some(a_name), Some(b_name)) => {
-                return a_name == b_name;
-            }
-            _ => {}
-        }
-        return false;
-    }
-
-    fn add_local(&mut self, name: Token) {
+    fn add_local(&mut self, name: &str) {
         if self.compiler.locals.len() == u8::MAX as usize {
             self.error("Too many local variables in function.");
             return;
         }
 
         let mut local = Local::new();
-        local.name = name;
+        local.name = name.to_string();
         local.depth = -1;
         local.index = self.compiler.locals.len() as i32;
         self.compiler.locals.push(local);
@@ -1004,7 +1055,9 @@ impl Parser {
 
         self.block();
         let function = self.end_enclosing();
-        self.emit_constant(Value::FunctionValue(Rc::new(function)));
+        let const_num = self.make_constant(Value::FunctionValue(Rc::new(function)));
+        self.emit_opcode(OpCode::OpClosure);
+        self.emit_byte(const_num);
     }
 
     fn synchronize(&mut self) {
@@ -1039,4 +1092,25 @@ impl Parser {
     fn chunk(&mut self) -> &mut Chunk {
         &mut self.compiler.function.chunk
     }
+
+    fn get_token_name(&self, token: &Token) -> &str {
+        self.scanner.source.get(token.start as usize..(token.start + token.length) as usize).unwrap()
+    }
 }
+
+fn identifiers_equal(source: &str, a: &Token, b: &Token) -> bool {
+    if a.length != b.length {
+        return false;
+    }
+
+    let a_name = source.get(a.start as usize..(a.start + a.length) as usize);
+    let b_name = source.get(b.start as usize..(b.start + b.length) as usize);
+    match (a_name, b_name) {
+        (Some(a_name), Some(b_name)) => {
+            return a_name == b_name;
+        }
+        _ => {}
+    }
+    return false;
+}
+

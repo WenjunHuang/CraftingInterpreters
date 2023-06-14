@@ -1,24 +1,24 @@
 use std::collections::{HashMap, VecDeque};
-use std::fmt::format;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
-
 use num_enum::TryFromPrimitiveError;
 
+
 use crate::chunk::{Chunk, OpCode};
-use crate::compiler::scanner::Scanner;
-use crate::debug::{disassemble_chunk, disassemble_instruction};
-use crate::function::Function;
-use crate::native_function::{NativeFn, NativeFunction};
-use crate::value::{print_value, Value};
-use crate::value::Value::{FunctionValue, NativeFunctionValue, Number, StringValue};
-use crate::vm::InterpretError::RuntimeError;
+use crate::vm::closure::Closure;
+use crate::vm::debug::disassemble_instruction;
+
+use crate::vm::function::Function;
+use crate::vm::native_function::{NativeFn, NativeFunction};
+use crate::vm::value::{print_value, Value};
+use crate::vm::value::Value::{ClosureValue, FunctionValue, NativeFunctionValue, Number, StringValue};
+use crate::vm::vm::InterpretError::RuntimeError;
 
 const FRAMES_MAX: usize = 64;
 const STACK_MAX: usize = FRAMES_MAX * u8::MAX as usize;
 
 pub struct CallFrame {
-    function: Rc<Function>,
+    closure: Rc<Closure>,
     ip: usize,
     stack_base: usize,
 }
@@ -43,8 +43,8 @@ impl VM {
             stack: VecDeque::with_capacity(STACK_MAX),
             globals: HashMap::new(),
         };
-        let rc = Rc::new(function);
-        vm.stack.push_back(FunctionValue(rc.clone()));
+        let rc = Rc::new(Closure { function: Rc::new(function) });
+        vm.stack.push_back(ClosureValue(rc.clone()));
         vm.define_native("clock", VM::clock_native);
         vm.call(rc, 0);
         return vm;
@@ -59,21 +59,21 @@ impl VM {
     }
 
     fn current_chunk(&mut self) -> &Chunk {
-        &self.current_frame().function.chunk
+        &self.current_frame().closure.function.chunk
     }
 
     fn read_byte(&mut self) -> u8 {
         let frame = self.current_frame();
-        let byte = frame.function.chunk.code[frame.ip];
+        let byte = frame.closure.function.chunk.code[frame.ip];
         frame.ip += 1;
         byte
     }
 
     fn read_short(&mut self) -> u16 {
         let frame = self.current_frame();
-        let byte1 = frame.function.chunk.code[frame.ip];
+        let byte1 = frame.closure.function.chunk.code[frame.ip];
         frame.ip += 1;
-        let byte2 = frame.function.chunk.code[frame.ip];
+        let byte2 = frame.closure.function.chunk.code[frame.ip];
         frame.ip += 1;
 
         ((byte1 as u16) << 8) | byte2 as u16
@@ -109,7 +109,7 @@ impl VM {
                 }
                 println!();
                 let frame = self.current_frame();
-                disassemble_instruction(&frame.function.chunk, frame.ip);
+                disassemble_instruction(&frame.closure.function.chunk, frame.ip);
             }
 
 
@@ -244,11 +244,6 @@ impl VM {
                     let arg_count = self.read_byte();
                     if let Some(callee) = self.peek_value(arg_count as usize) {
                         match callee {
-                            FunctionValue(function) => {
-                                if !self.call(function.clone(), arg_count as usize) {
-                                    return Err(RuntimeError);
-                                }
-                            }
                             NativeFunctionValue(function) => {
                                 let mut args = Vec::with_capacity(arg_count as usize);
                                 let native_fn = function.clone();
@@ -260,13 +255,28 @@ impl VM {
                                 self.pop_value();
                                 self.push_value(result);
                             }
+                            ClosureValue(closure) => {}
                             _ => {
-                                self.runtime_error("Can only call functions and classes.");
+                                self.runtime_error("Can only call native functions and closures.");
                                 return Err(RuntimeError);
                             }
                         }
                     }
                 }
+                Ok(OpCode::OpClosure) => {
+                    match self.read_constant() {
+                        FunctionValue(function) => {
+                            let closure = Closure::new(function);
+                            self.push_value(Value::ClosureValue(Rc::new(closure)));
+                        }
+                        _ => {
+                            self.runtime_error("Expect a function value.");
+                            return Err(RuntimeError);
+                        }
+                    }
+                }
+                Ok(OpCode::OpGetUpvalue) => {}
+                Ok(OpCode::OpSetUpvalue) => {}
             }
         }
     }
@@ -275,9 +285,9 @@ impl VM {
         self.globals.insert(name.to_string(), Value::NativeFunctionValue(Rc::new(NativeFunction::new(function))));
     }
 
-    fn call(&mut self, function: Rc<Function>, arg_count: usize) -> bool {
-        if arg_count != function.arity {
-            self.runtime_error(&format!("Expected {} arguments but got {}.", function.arity, arg_count));
+    fn call(&mut self, closure: Rc<Closure>, arg_count: usize) -> bool {
+        if arg_count != closure.function.arity {
+            self.runtime_error(&format!("Expected {} arguments but got {}.", closure.function.arity, arg_count));
             return false;
         }
         if self.frames.len() == FRAMES_MAX {
@@ -285,7 +295,7 @@ impl VM {
             return false;
         }
         self.frames.push_back(CallFrame {
-            function: function.clone(),
+            closure: closure.clone(),
             ip: 0,
             stack_base: self.stack.len() - arg_count - 1,
         });
@@ -294,7 +304,7 @@ impl VM {
 
     fn read_constant(&mut self) -> Value {
         let slot = self.read_byte();
-        self.current_frame().function.chunk.constants.values.get(slot as usize).unwrap().clone()
+        self.current_frame().closure.function.chunk.constants.values.get(slot as usize).unwrap().clone()
     }
 
     fn is_falsey(&self, value: &Value) -> bool {
@@ -341,7 +351,7 @@ impl VM {
 
     fn runtime_error(&mut self, message: &str) {
         for frame in self.frames.iter().rev() {
-            let function = &frame.function;
+            let function = &frame.closure.function;
             let instruction = frame.ip - 1;
             eprintln!("[line {}] in {}", function.chunk.lines[instruction],
                       if function.name.is_empty() {

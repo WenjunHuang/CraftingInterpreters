@@ -3,8 +3,8 @@ use std::fmt::{Display, Formatter};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use crate::chunk::OpCode::{OpAdd, OpConstant, OpDivide, OpMultiply, OpNegate, OpReturn, OpSubtract};
-use crate::memory::grow_capacity;
-use crate::value::{Value, ValueArray};
+use crate::vm::memory::grow_capacity;
+use crate::vm::value::{Value, ValueArray};
 
 #[repr(u8)]
 #[derive(Copy, Clone, TryFromPrimitive, IntoPrimitive)]
@@ -34,6 +34,9 @@ pub enum OpCode {
     OpJump,
     OpLoop,
     OpCall,
+    OpClosure,
+    OpGetUpvalue,
+    OpSetUpvalue,
 }
 
 #[derive(Debug)]
@@ -73,9 +76,8 @@ impl Chunk {
         self.count += 1;
     }
 
-    pub fn add_constant(&mut self, value: Value) -> u32 {
-        self.constants.write_value(value);
-        (self.constants.count - 1) as u32
+    pub fn add_constant(&mut self, value: Value) -> usize {
+        self.constants.write_value(value)
     }
 
     pub fn get_constant(&self, index: usize) -> Option<&Value> {

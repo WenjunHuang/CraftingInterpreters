@@ -45,10 +45,20 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
         Ok(OpCode::OpJump) => jump_instruction("OP_JUMP", 1, chunk, offset),
         Ok(OpCode::OpLoop) => jump_instruction("OP_LOOP", -1, chunk, offset),
         Ok(OpCode::OpCall) => byte_instruction("OP_CALL", chunk, offset),
+        Ok(OpCode::OpClosure) => {
+            let mut offset = offset + 1;
+            let constant = chunk.code[offset];
+            println!("{:16} {:4} {}", "OP_CLOSURE", constant, chunk.constants.values[constant as usize]);
+            offset += 1;
+
+            offset
+        }
         Err(_) => {
             println!("Unknown opcode {}", code);
             offset + 1
         }
+        Ok(OpCode::OpGetUpvalue) => {0}
+        Ok(OpCode::OpSetUpvalue) => {0}
     }
 }
 

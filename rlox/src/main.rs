@@ -3,19 +3,14 @@ use std::fs::File;
 use std::io::{Read, stdout, Write};
 use std::io::stdin;
 use std::process::exit;
+use crate::compile::compile;
+use crate::vm::vm::{InterpretError, InterpretResult, VM};
 
-use crate::compiler::compile::compile;
-use crate::vm::{InterpretError, InterpretResult};
 
 mod chunk;
-mod common;
-mod memory;
-mod debug;
-mod value;
 mod vm;
 mod compiler;
-mod function;
-mod native_function;
+mod compile;
 
 fn main() {
     // parser command line arguments
@@ -55,7 +50,7 @@ fn repl() {
 
 fn interpret(source: String) -> InterpretResult {
     if let Ok(chunk) = compile(source) {
-        let mut vm = vm::VM::new(chunk);
+        let mut vm = VM::new(chunk);
         vm.run()
     } else {
         Err(InterpretError::CompileError)
