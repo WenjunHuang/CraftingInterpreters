@@ -48,7 +48,6 @@ pub struct VM {
     frames: Vec<CallFrame>,
     stack: Vec<StackValue>,
     globals: HashMap<String, Value>,
-    upvalues: LinkedList<UpValue>,
 }
 
 pub enum InterpretError {
@@ -64,11 +63,11 @@ impl VM {
             frames: Vec::with_capacity(FRAMES_MAX),
             stack: Vec::with_capacity(STACK_MAX),
             globals: HashMap::new(),
-            upvalues: LinkedList::new(),
         };
-        let rc = Closure::new(Rc::new(function));
+        let rc = Rc::new(Closure::new(Rc::new(function)));
         vm.define_native("clock", VM::clock_native);
-        vm.call(Rc::new(rc), 0);
+        vm.push_value(RawValue(ClosureValue(rc.clone())));
+        vm.call(rc, 0);
         return vm;
     }
 
@@ -316,7 +315,8 @@ impl VM {
                 }
                 Ok(OpCode::OpCall) => {
                     let arg_count = self.read_byte();
-                    if let Some(callee) = self.peek_value(arg_count as usize) {
+                    let peek = self.peek_value(arg_count as usize).map(|v| v.clone());
+                    if let Some(callee) = peek {
                         match callee {
                             RawValue(NativeFunctionValue(function)) => {
                                 let mut args = Vec::with_capacity(arg_count as usize);
@@ -331,6 +331,19 @@ impl VM {
                             }
                             RawValue(ClosureValue(closure)) => {
                                 self.call(closure.clone(), arg_count as usize);
+                            }
+                            StackValue::UpValue(upvalue) => {
+                                let v = upvalue.borrow();
+                                match *v {
+                                    ClosureValue(ref closure) => {
+                                        let f1 = closure.clone();
+                                        self.call(f1, arg_count as usize);
+                                    }
+                                    _ => {
+                                        self.runtime_error("Can only call functions and closures.");
+                                        return Err(RuntimeError);
+                                    }
+                                }
                             }
                             _ => {
                                 self.runtime_error("Can only call native functions and closures.");
@@ -372,9 +385,9 @@ impl VM {
                 }
                 Ok(OpCode::OpSetUpValue) => {
                     let slot = self.read_byte();
-                    let peek = self.peek_value(0).map(|v|v.clone());
+                    let peek = self.peek_value(0).map(|v| v.clone());
                     if let Some(upvalue) = self.current_frame().closure.upvalues.get(slot as usize) {
-                        match  peek {
+                        match peek {
                             Some(RawValue(value)) => {
                                 upvalue.value.replace(value);
                             }
@@ -391,7 +404,6 @@ impl VM {
                         return Err(RuntimeError);
                     }
                 }
-                Ok(OpCode::OpCloseUpValue) => {}
             }
         }
     }

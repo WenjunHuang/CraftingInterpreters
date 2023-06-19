@@ -56,7 +56,6 @@ struct Local {
     name: String,
     index: i32,
     depth: i32,
-    is_captured: bool,
 }
 
 impl Local {
@@ -65,7 +64,6 @@ impl Local {
             name: "".to_string(),
             index: -1,
             depth: -1,
-            is_captured: false,
         }
     }
 }
@@ -494,7 +492,6 @@ impl Parser {
                 match Self::resolve_local(enclosing, name)? {
                     Some(local) => {
                         let index = local.index as u8;
-                        local.is_captured = true;
                         Self::add_upvalue(compiler, UpValue::LocalVariable(index)).map(|x| Some(x))
                     }
                     None => {
@@ -910,11 +907,7 @@ impl Parser {
 
         while let Some(last) = self.compiler.locals.last() {
             if last.depth > scope_depth {
-                if last.is_captured {
-                    self.emit_opcode(OpCode::OpCloseUpValue);
-                } else {
-                    self.emit_opcode(OpCode::OpPop);
-                }
+                self.emit_opcode(OpCode::OpPop);
                 self.compiler.locals.pop();
             } else {
                 break;
