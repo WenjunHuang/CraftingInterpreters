@@ -5,3 +5,4 @@ pub mod native_function;
 pub mod value;
 pub mod vm;
 pub mod closure;
+pub mod up_value;

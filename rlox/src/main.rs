@@ -4,6 +4,7 @@ use std::io::{Read, stdout, Write};
 use std::io::stdin;
 use std::process::exit;
 use crate::compile::compile;
+
 use crate::vm::vm::{InterpretError, InterpretResult, VM};
 
 

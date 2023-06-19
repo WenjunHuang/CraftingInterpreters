@@ -1,6 +1,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt::Write;
+use std::mem;
 use std::mem::replace;
 use std::rc::Rc;
 
@@ -55,6 +56,7 @@ struct Local {
     name: String,
     index: i32,
     depth: i32,
+    is_captured: bool,
 }
 
 impl Local {
@@ -63,13 +65,15 @@ impl Local {
             name: "".to_string(),
             index: -1,
             depth: -1,
+            is_captured: false,
         }
     }
 }
 
-struct UpValue {
-    index: u8,
-    is_local: bool,
+#[derive(Eq, PartialEq)]
+enum UpValue {
+    LocalVariable(u8),
+    UpValue(u8),
 }
 
 pub struct Compiler {
@@ -78,16 +82,6 @@ pub struct Compiler {
     locals: Vec<Local>,
     upvalues: Vec<UpValue>,
     scope_depth: i32,
-}
-
-impl Compiler {
-    pub(crate) fn add_upvalue(&mut self, index: u8, is_local: bool) -> usize {
-        self.upvalues.push(UpValue {
-            index,
-            is_local,
-        });
-        return self.upvalues.len() - 1;
-    }
 }
 
 impl Compiler {
@@ -107,6 +101,11 @@ impl Compiler {
         local.index = 0;
         compiler.locals.push(local);
         return compiler;
+    }
+    fn add_upvalue(&mut self, up_value: UpValue) -> u8 {
+        self.upvalues.push(up_value);
+        self.function.upvalue_count = self.upvalues.len();
+        (self.function.upvalue_count - 1) as u8
     }
 }
 
@@ -460,13 +459,13 @@ impl Parser {
 
 
     fn named_variable(&mut self, name: &str, can_assign: bool) -> ParserResult {
-        let (arg, get_op, set_op) = match Self::resolve_local(&self.compiler, name)? {
+        let (arg, get_op, set_op) = match Self::resolve_local(&mut self.compiler, name)? {
             Some(local) => {
                 (local.index as u8, OpCode::OpGetLocal, OpCode::OpSetLocal)
             }
             None => {
                 if let Some(upvalue) = self.resolve_upvalue(name)? {
-                    (upvalue as u8, OpCode::OpGetUpvalue, OpCode::OpSetUpvalue)
+                    (upvalue, OpCode::OpGetUpValue, OpCode::OpSetUpValue)
                 } else {
                     (self.identifier_constant(name.to_string())?, OpCode::OpGetGlobal, OpCode::OpSetGlobal)
                 }
@@ -495,11 +494,12 @@ impl Parser {
                 match Self::resolve_local(enclosing, name)? {
                     Some(local) => {
                         let index = local.index as u8;
-                        Self::add_upvalue(compiler, index, true).map(|x| Some(x))
+                        local.is_captured = true;
+                        Self::add_upvalue(compiler, UpValue::LocalVariable(index)).map(|x| Some(x))
                     }
                     None => {
                         match Self::resolve_compiler_upvalue(enclosing, name)? {
-                            Some(upvalue) => Self::add_upvalue(compiler, upvalue, false).map(|x| Some(x)),
+                            Some(idx) => Self::add_upvalue(compiler, UpValue::UpValue(idx)).map(|x| Some(x)),
                             None => Ok(None)
                         }
                     }
@@ -508,20 +508,20 @@ impl Parser {
         }
     }
 
-    fn add_upvalue(compiler: &mut Compiler, index: u8, is_local: bool) -> Result<u8, String> {
-        match compiler.upvalues.iter().rev().find(|upvalue| upvalue.index == index && upvalue.is_local == is_local) {
-            Some(upvalue) => Ok(upvalue.index),
+    fn add_upvalue(compiler: &mut Compiler, up_value: UpValue) -> Result<u8, String> {
+        match compiler.upvalues.iter().enumerate().find(|(index, item)| up_value == **item) {
+            Some((idx, _)) => Ok(idx as u8),
             None =>
                 if compiler.upvalues.len() == u8::MAX as usize {
                     Err("Too many closure variables in functions.".to_string())
                 } else {
-                    Ok(compiler.add_upvalue(index, is_local) as u8)
+                    Ok(compiler.add_upvalue(up_value))
                 }
         }
     }
 
-    fn resolve_local<'a>(compiler: &'a Compiler, name: &str) -> Result<Option<&'a Local>, String> {
-        for local in compiler.locals.iter().rev() {
+    fn resolve_local<'a>(compiler: &'a mut Compiler, name: &str) -> Result<Option<&'a mut Local>, String> {
+        for local in compiler.locals.iter_mut().rev() {
             if local.name == name {
                 if local.depth == -1 {
                     return Err("Cannot read local variable in its own initializer.".to_string());
@@ -733,13 +733,13 @@ impl Parser {
         }
     }
 
-    fn end_enclosing(&mut self) -> Result<Function, String> {
+    fn end_enclosing(&mut self) -> Result<Compiler, String> {
         let line = self.current.unwrap().line;
         self.emit_return();
         match self.compiler.enclosing.take() {
             Some(enclosing) => {
                 let compiler = replace(&mut self.compiler, enclosing);
-                Ok(compiler.function)
+                Ok(*compiler)
             }
             _ => {
                 Err(format!("Compiler is not enclosed. line: {}", line))
@@ -910,7 +910,11 @@ impl Parser {
 
         while let Some(last) = self.compiler.locals.last() {
             if last.depth > scope_depth {
-                self.emit_opcode(OpCode::OpPop);
+                if last.is_captured {
+                    self.emit_opcode(OpCode::OpCloseUpValue);
+                } else {
+                    self.emit_opcode(OpCode::OpPop);
+                }
                 self.compiler.locals.pop();
             } else {
                 break;
@@ -1039,7 +1043,7 @@ impl Parser {
     fn fun_declaration(&mut self) -> ParserResult {
         let variable = self.parse_variable("Expect function name.")?;
         self.mark_initialized();
-        self.function(FunctionType::FUNCTION);
+        self.function(FunctionType::FUNCTION)?;
         self.define_variable(variable);
         Ok(())
     }
@@ -1067,10 +1071,25 @@ impl Parser {
         self.consume(TokenType::LeftBrace, "Expect '{' before function body.")?;
 
         self.block()?;
-        let function = self.end_enclosing()?;
-        let const_num = self.make_constant(Value::FunctionValue(Rc::new(function)))?;
+        let mut compiler = self.end_enclosing()?;
+        let upvalues = mem::take(&mut compiler.upvalues);
+        let const_num = self.make_constant(Value::FunctionValue(Rc::new(compiler.function)))?;
+
         self.emit_opcode(OpCode::OpClosure);
         self.emit_byte(const_num);
+        for upvalue in upvalues {
+            match upvalue {
+                UpValue::LocalVariable(idx) => {
+                    self.emit_byte(1);
+                    self.emit_byte(idx);
+                }
+                UpValue::UpValue(idx) => {
+                    self.emit_byte(0);
+                    self.emit_byte(idx);
+                }
+            }
+        }
+
         Ok(())
     }
 

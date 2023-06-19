@@ -1,6 +1,7 @@
 use num_enum::TryFromPrimitiveError;
 use crate::chunk::{Chunk, OpCode};
 use crate::chunk::OpCode::{OpConstant, OpReturn, OpNegate};
+use crate::vm::value::Value;
 
 pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
     println!("== {} ==", name);
@@ -48,8 +49,22 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
         Ok(OpCode::OpClosure) => {
             let mut offset = offset + 1;
             let constant = chunk.code[offset];
-            println!("{:16} {:4} {}", "OP_CLOSURE", constant, chunk.constants.values[constant as usize]);
+            let value = &chunk.constants.values[constant as usize];
+            println!("{:16} {:4} {}", "OP_CLOSURE", constant, value);
             offset += 1;
+
+            match value {
+                Value::FunctionValue(fun) =>{
+                    for _ in 0..fun.upvalue_count {
+                        let is_local = chunk.code[offset];
+                        offset += 1;
+                        let index = chunk.code[offset];
+                        offset += 1;
+                        println!("{:04}      |                     {} {}", offset - 2, if is_local == 1 { "local" } else { "upvalue" }, index);
+                    }
+                }
+                _ =>{}
+            }
 
             offset
         }
@@ -57,8 +72,9 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
             println!("Unknown opcode {}", code);
             offset + 1
         }
-        Ok(OpCode::OpGetUpvalue) => {0}
-        Ok(OpCode::OpSetUpvalue) => {0}
+        Ok(OpCode::OpGetUpValue) => byte_instruction("OP_GET_UPVALUE", chunk, offset),
+        Ok(OpCode::OpSetUpValue) => byte_instruction("OP_SET_UPVALUE", chunk, offset),
+        Ok(OpCode::OpCloseUpValue) => simple_instruction("OP_CLOSE_UPVALUE",offset),
     }
 }
 

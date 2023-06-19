@@ -1,7 +1,8 @@
 use std::fmt::{Debug, Display, Formatter};
 use crate::vm::value::Value;
+use crate::vm::vm::StackValue;
 
-pub type NativeFn = fn(&[Value]) -> Value;
+pub type NativeFn = fn(&[StackValue]) -> Value;
 
 pub struct NativeFunction {
     function: NativeFn,
@@ -25,7 +26,7 @@ impl NativeFunction {
             function
         }
     }
-    pub fn call(&self, arguments: &[Value]) -> Value {
+    pub fn call(&self, arguments: &[StackValue]) -> Value {
         (self.function)(arguments)
     }
 }
