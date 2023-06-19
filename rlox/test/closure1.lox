@@ -1,0 +1,9 @@
+var globalOne;
+fun main() {
+for (var a = 1;a<=2;a=a+1){
+ fun closure() { print a; }
+ globalOne = closure;
+ }
+}
+main();
+globalOne();

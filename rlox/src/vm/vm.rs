@@ -272,13 +272,14 @@ impl VM {
                 Ok(OpCode::OpSetGlobal) => {
                     let name = self.read_string()?;
                     if self.globals.contains_key(&name) {
-                        let value = self.pop_value().unwrap();
+                        let value = self.peek_value(0).unwrap();
                         match value {
                             RawValue(v) => {
-                                self.globals.insert(name.to_string(), v);
+                                self.globals.insert(name.to_string(), v.clone());
                             }
                             StackValue::UpValue(upvalue) => {
-                                self.globals.insert(name.to_string(), upvalue.borrow().clone());
+                                let v = upvalue.borrow().clone();
+                                self.globals.insert(name.to_string(), v);
                             }
                         }
                     } else {
