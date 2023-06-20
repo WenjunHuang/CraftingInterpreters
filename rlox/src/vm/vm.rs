@@ -1,14 +1,14 @@
 use std::cell::RefCell;
-use std::collections::{HashMap, LinkedList, VecDeque};
-use std::fmt::{Display, Formatter};
+use std::collections::{HashMap, VecDeque};
+use std::fmt::{Display, Formatter, Write};
 use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use num_enum::TryFromPrimitiveError;
 
 
 use crate::chunk::{Chunk, OpCode};
+use crate::vm::class::{Class, Instance};
 use crate::vm::closure::Closure;
 use crate::vm::debug::disassemble_instruction;
 
@@ -16,7 +16,7 @@ use crate::vm::function::Function;
 use crate::vm::native_function::{NativeFn, NativeFunction};
 use crate::vm::up_value::UpValue;
 use crate::vm::value::{print_value, Value};
-use crate::vm::value::Value::{Bool, ClosureValue, FunctionValue, NativeFunctionValue, Number, StringValue};
+use crate::vm::value::Value::{Bool, ClassValue, ClosureValue, FunctionValue, InstanceValue, NativeFunctionValue, Number, StringValue};
 use crate::vm::vm::InterpretError::RuntimeError;
 use crate::vm::vm::StackValue::RawValue;
 
@@ -27,6 +27,15 @@ const STACK_MAX: usize = FRAMES_MAX * u8::MAX as usize;
 pub enum StackValue {
     RawValue(Value),
     UpValue(Rc<RefCell<Value>>),
+}
+
+impl StackValue {
+    pub fn as_value(&self) -> Value {
+        match self {
+            RawValue(value) => value.clone(),
+            StackValue::UpValue(value) => value.borrow().clone(),
+        }
+    }
 }
 
 impl Display for StackValue {
@@ -51,8 +60,8 @@ pub struct VM {
 }
 
 pub enum InterpretError {
-    CompileError,
-    RuntimeError,
+    CompileError(String),
+    RuntimeError(String),
 }
 
 pub type InterpretResult = Result<(), InterpretError>;
@@ -104,18 +113,24 @@ impl VM {
         self.stack.push(value);
     }
 
-    fn pop_value(&mut self) -> Option<StackValue> {
-        self.stack.pop()
+    fn pop_value(&mut self) -> Result<StackValue, InterpretError> {
+        self.stack.pop().ok_or(RuntimeError("Stack underflow".to_string()))
     }
 
-    fn peek_value(&self, index: usize) -> Option<&StackValue> {
+    fn peek_value_mut(&mut self, index: usize) -> Result<&mut StackValue, InterpretError> {
         let size = self.stack.len();
-        return if size == 0 {
-            None
-        } else if size <= index {
-            None
+        return if size == 0 || size <= index {
+            Err(RuntimeError("Stack underflow".to_string()))
         } else {
-            self.stack.get(size - index - 1)
+            self.stack.get_mut(size - index - 1).ok_or(RuntimeError("Stack underflow".to_string()))
+        };
+    }
+    fn peek_value(&self, index: usize) -> Result<&StackValue, InterpretError> {
+        let size = self.stack.len();
+        return if size == 0 || size <= index {
+            Err(RuntimeError("Stack underflow".to_string()))
+        } else {
+            self.stack.get(size - index - 1).ok_or(RuntimeError("Stack underflow".to_string()))
         };
     }
 
@@ -141,112 +156,101 @@ impl VM {
                     self.push_value(RawValue(constant));
                 }
                 Ok(OpCode::OpReturn) => {
-                    let result = self.pop_value().expect("No return value on stack");
+                    let result = self.pop_value()?;
                     let stack_base = self.current_frame().stack_base;
                     self.frames.pop();
                     if self.frames.len() == 0 {
                         // Exit interpreter
-                        self.pop_value();
+                        self.pop_value()?;
                         return Ok(());
                     }
 
                     // Pop all values from the stack that were pushed by the caller
                     while self.stack.len() > stack_base {
-                        self.pop_value();
+                        self.pop_value()?;
                     }
                     self.push_value(result);
                 }
                 Ok(OpCode::OpNegate) => {
-                    if let Some(v) = self.pop_value() {
-                        match v {
-                            RawValue(Number(n)) => {
-                                self.push_value(RawValue(Number(-n)));
-                            }
-                            StackValue::UpValue(value) => {
-                                let mut v = value.borrow_mut();
-                                match *v {
-                                    Number(n) => {
-                                        *v = Number(-n);
-                                    }
-                                    _ => {
-                                        self.runtime_error("Operand must be a number.");
-                                        return Err(RuntimeError);
-                                    }
+                    let v = self.pop_value()?;
+                    match v {
+                        RawValue(Number(n)) => {
+                            self.push_value(RawValue(Number(-n)));
+                        }
+                        StackValue::UpValue(value) => {
+                            let mut v = value.borrow_mut();
+                            match *v {
+                                Number(n) => {
+                                    *v = Number(-n);
+                                }
+                                _ => {
+                                    return Err(RuntimeError(self.runtime_error("Operand must be a number.")));
                                 }
                             }
-                            _ => {
-                                self.runtime_error("Operand must be a number.");
-                                return Err(RuntimeError);
-                            }
                         }
-                    } else {
-                        self.runtime_error("Operand must be a number.");
-                        return Err(RuntimeError);
+                        _ => {
+                            return Err(RuntimeError(self.runtime_error("Operand must be a number.")));
+                        }
                     }
                 }
                 Err(_) => {
-                    println!("Unknown opcode {}", code);
-                    return Err(RuntimeError);
+                    return Err(RuntimeError(format!("Unknown opcode {}", code)));
                 }
                 Ok(OpCode::OpAdd) => {
-                    self.binary_op(OpCode::OpAdd)
+                    self.binary_op(OpCode::OpAdd)?;
                 }
-                Ok(OpCode::OpSubtract) => self.binary_op(OpCode::OpSubtract),
-                Ok(OpCode::OpMultiply) => self.binary_op(OpCode::OpMultiply),
-                Ok(OpCode::OpDivide) => self.binary_op(OpCode::OpDivide),
+                Ok(OpCode::OpSubtract) => self.binary_op(OpCode::OpSubtract)?,
+                Ok(OpCode::OpMultiply) => self.binary_op(OpCode::OpMultiply)?,
+                Ok(OpCode::OpDivide) => self.binary_op(OpCode::OpDivide)?,
                 Ok(OpCode::OpNil) => self.push_value(RawValue(Value::Nil)),
                 Ok(OpCode::OpTrue) => self.push_value(RawValue(Bool(true))),
                 Ok(OpCode::OpFalse) => self.push_value(RawValue(Bool(false))),
                 Ok(OpCode::OpNot) => {
-                    if let Some(value) = self.pop_value() {
-                        match value {
-                            RawValue(Bool(v)) => self.push_value(RawValue(Bool(!v))),
-                            RawValue(Value::Nil) => self.push_value(RawValue(Bool(true))),
-                            StackValue::UpValue(upvalue) => {
-                                let mut v = upvalue.borrow_mut();
-                                match *v {
-                                    Bool(b) => {
-                                        *v = Bool(!b);
-                                    }
-                                    Value::Nil => {
-                                        *v = Bool(true);
-                                    }
-                                    _ => {
-                                        self.runtime_error("Operand must be a boolean.");
-                                        return Err(RuntimeError);
-                                    }
+                    let value = self.pop_value()?;
+                    match value {
+                        RawValue(Bool(v)) => self.push_value(RawValue(Bool(!v))),
+                        RawValue(Value::Nil) => self.push_value(RawValue(Bool(true))),
+                        StackValue::UpValue(upvalue) => {
+                            let mut v = upvalue.borrow_mut();
+                            match *v {
+                                Bool(b) => {
+                                    *v = Bool(!b);
+                                }
+                                Value::Nil => {
+                                    *v = Bool(true);
+                                }
+                                _ => {
+                                    return Err(RuntimeError(self.runtime_error("Operand must be a boolean.")));
                                 }
                             }
-                            _ => {
-                                self.runtime_error("Operand must be a boolean.");
-                                return Err(RuntimeError);
-                            }
+                        }
+                        _ => {
+                            return Err(RuntimeError(self.runtime_error("Operand must be a boolean.")));
                         }
                     }
                 }
                 Ok(OpCode::OpEqual) => {
-                    if let (Some(b), Some(a)) = (self.pop_value(), self.pop_value()) {
-                        self.push_value(RawValue(Bool(a == b)));
-                    }
+                    let b = self.pop_value()?;
+                    let a = self.pop_value()?;
+                    self.push_value(RawValue(Bool(a == b)));
                 }
                 Ok(OpCode::OpGreater) => {
-                    self.binary_op(OpCode::OpGreater);
+                    self.binary_op(OpCode::OpGreater)?;
                 }
                 Ok(OpCode::OpLess) => {
-                    self.binary_op(OpCode::OpLess);
+                    self.binary_op(OpCode::OpLess)?;
                 }
                 Ok(OpCode::OpPrint) => {
-                    if let Some(v) = self.pop_value() {
-                        print_value(&v);
-                        println!();
-                    }
+                    let v = self.pop_value()?;
+                    print_value(&v);
+                    println!();
                 }
                 Ok(OpCode::OpPop) => {
-                    self.pop_value();
+                    self.pop_value()?;
                 }
                 Ok(OpCode::OpDefineGlobal) => {
                     let name = self.read_string()?;
-                    let value = self.pop_value().unwrap();
+                    let value = self.pop_value()?;
                     match value {
                         RawValue(v) => {
                             self.globals.insert(name.to_string(), v);
@@ -264,15 +268,14 @@ impl VM {
                             self.push_value(RawValue(v.clone()));
                         }
                         None => {
-                            self.runtime_error(&format!("Undefined variable '{}'.", name));
-                            return Err(RuntimeError);
+                            return Err(RuntimeError(self.runtime_error(&format!("Undefined variable '{}'.", name))));
                         }
                     };
                 }
                 Ok(OpCode::OpSetGlobal) => {
                     let name = self.read_string()?;
                     if self.globals.contains_key(&name) {
-                        let value = self.peek_value(0).unwrap();
+                        let value = self.peek_value(0)?;
                         match value {
                             RawValue(v) => {
                                 self.globals.insert(name.to_string(), v.clone());
@@ -283,8 +286,7 @@ impl VM {
                             }
                         }
                     } else {
-                        self.runtime_error(&format!("Undefined variable '{}'.", name));
-                        return Err(RuntimeError);
+                        return Err(RuntimeError(self.runtime_error(&format!("Undefined variable '{}'.", name))));
                     }
                 }
                 Ok(OpCode::OpGetLocal) => {
@@ -296,14 +298,13 @@ impl VM {
                 Ok(OpCode::OpSetLocal) => {
                     let slot = self.read_byte();
                     let frame_base = self.current_frame().stack_base;
-                    self.stack[frame_base + slot as usize] = self.peek_value(0).unwrap().clone();
+                    self.stack[frame_base + slot as usize] = self.peek_value(0)?.clone();
                 }
                 Ok(OpCode::OpJumpIfFalse) => {
                     let offset = self.read_short();
-                    if let Some(value) = self.peek_value(0) {
-                        if self.is_falsey(value) {
-                            self.current_frame().ip += offset as usize;
-                        }
+                    let value = self.peek_value(0)?;
+                    if self.is_falsey(value) {
+                        self.current_frame().ip += offset as usize;
                     }
                 }
                 Ok(OpCode::OpJump) => {
@@ -316,40 +317,39 @@ impl VM {
                 }
                 Ok(OpCode::OpCall) => {
                     let arg_count = self.read_byte();
-                    let peek = self.peek_value(arg_count as usize).map(|v| v.clone());
-                    if let Some(callee) = peek {
-                        match callee {
-                            RawValue(NativeFunctionValue(function)) => {
-                                let mut args = Vec::with_capacity(arg_count as usize);
-                                let native_fn = function.clone();
-                                for _ in 0..arg_count {
-                                    let value = self.pop_value().expect("Expect a value on the stack.");
-                                    args.push(value);
+                    let callee = self.peek_value(arg_count as usize)?.clone();
+                    match callee {
+                        RawValue(NativeFunctionValue(function)) => {
+                            let mut args = Vec::with_capacity(arg_count as usize);
+                            for _ in 0..arg_count {
+                                let value = self.pop_value()?;
+                                args.push(value);
+                            }
+                            let result = function.call(&args);
+                            self.pop_value()?; // pop native_function from stack
+                            self.push_value(RawValue(result));
+                        }
+                        RawValue(ClosureValue(closure)) => {
+                            self.call(closure, arg_count as usize);
+                        }
+                        RawValue(ClassValue(class)) => {
+                            let slot = self.peek_value_mut(arg_count as usize)?;
+                            *slot = RawValue(InstanceValue(Rc::new(Instance::new(class))));
+                        }
+                        StackValue::UpValue(upvalue) => {
+                            let v = upvalue.borrow();
+                            match *v {
+                                ClosureValue(ref closure) => {
+                                    let f1 = closure.clone();
+                                    self.call(f1, arg_count as usize);
                                 }
-                                let result = native_fn.call(&args);
-                                self.pop_value();
-                                self.push_value(RawValue(result));
-                            }
-                            RawValue(ClosureValue(closure)) => {
-                                self.call(closure.clone(), arg_count as usize);
-                            }
-                            StackValue::UpValue(upvalue) => {
-                                let v = upvalue.borrow();
-                                match *v {
-                                    ClosureValue(ref closure) => {
-                                        let f1 = closure.clone();
-                                        self.call(f1, arg_count as usize);
-                                    }
-                                    _ => {
-                                        self.runtime_error("Can only call functions and closures.");
-                                        return Err(RuntimeError);
-                                    }
+                                _ => {
+                                    return Err(RuntimeError(self.runtime_error("Can only call functions and closures.")));
                                 }
                             }
-                            _ => {
-                                self.runtime_error("Can only call native functions and closures.");
-                                return Err(RuntimeError);
-                            }
+                        }
+                        _ => {
+                            return Err(RuntimeError(self.runtime_error("Can only call native functions and closures.")));
                         }
                     }
                 }
@@ -369,8 +369,7 @@ impl VM {
                             self.push_value(RawValue(ClosureValue(Rc::new(closure))));
                         }
                         _ => {
-                            self.runtime_error("Expect a function value.");
-                            return Err(RuntimeError);
+                            return Err(RuntimeError(self.runtime_error("Expect a function value.")));
                         }
                     }
                 }
@@ -379,34 +378,95 @@ impl VM {
                     let value = if let Some(upvalue) = self.current_frame().closure.upvalues.get(slot as usize) {
                         Ok(upvalue.value.borrow().clone())
                     } else {
-                        self.runtime_error("Undefined upvalue.");
-                        Err(RuntimeError)
+                        Err(RuntimeError(self.runtime_error("Expect a function value.")))
                     };
                     self.push_value(RawValue(value?));
                 }
                 Ok(OpCode::OpSetUpValue) => {
                     let slot = self.read_byte();
-                    let peek = self.peek_value(0).map(|v| v.clone());
+                    let peek = self.peek_value(0)?.clone();
                     if let Some(upvalue) = self.current_frame().closure.upvalues.get(slot as usize) {
                         match peek {
-                            Some(RawValue(value)) => {
+                            RawValue(value) => {
                                 upvalue.value.replace(value);
                             }
-                            Some(StackValue::UpValue(value)) => {
+                            StackValue::UpValue(value) => {
                                 upvalue.value.replace(value.borrow().clone());
-                            }
-                            None => {
-                                self.runtime_error("Expect a value on the stack.");
-                                return Err(RuntimeError);
                             }
                         }
                     } else {
-                        self.runtime_error("Undefined upvalue.");
-                        return Err(RuntimeError);
+                        return Err(RuntimeError(self.runtime_error("Undefined upvalue.")));
+                    }
+                }
+                Ok(OpCode::OpClass) => {
+                    let name = self.read_string()?;
+                    let class = Class::new(name);
+                    self.push_value(RawValue(ClassValue(Rc::new(class))));
+                }
+                Ok(OpCode::OpGetProperty) => {
+                    let value = self.peek_value(0)?.clone();
+                    match value {
+                        RawValue(InstanceValue(instance)) => {
+                            self.get_instance_property(&instance)?;
+                        }
+                        StackValue::UpValue(upvalue) => {
+                            let v = upvalue.borrow();
+                            match *v {
+                                InstanceValue(ref instance) => {
+                                    self.get_instance_property(instance)?;
+                                }
+                                _ => {
+                                    return Err(RuntimeError(self.runtime_error("Only instances have properties.")));
+                                }
+                            }
+                        }
+                        _ => {
+                            return Err(RuntimeError(self.runtime_error("Only instances have properties.")));
+                        }
+                    }
+                }
+                Ok(OpCode::OpSetProperty) => {
+                    let name = self.read_string()?;
+                    let value = self.peek_value(1)?;
+                    match value {
+                        RawValue(InstanceValue(instance)) => {
+                            let value = self.peek_value(0)?;
+                            instance.fields
+                                .borrow_mut()
+                                .insert(name, value.as_value());
+                        }
+                        StackValue::UpValue(upvalue) => {
+                            let v = upvalue.borrow();
+                            match *v {
+                                InstanceValue(ref instance) => {
+                                    let value = self.peek_value(0)?;
+                                    instance.fields
+                                        .borrow_mut()
+                                        .insert(name, value.as_value());
+                                }
+                                _ => {
+                                    return Err(RuntimeError(self.runtime_error("Only instances have fields.")));
+                                }
+                            }
+                        }
+                        _ => {
+                            return Err(RuntimeError(self.runtime_error("Only instances have fields.")));
+                        }
                     }
                 }
             }
         }
+    }
+
+    fn get_instance_property(&mut self, instance: &Instance) -> Result<(), InterpretError> {
+        let name = self.read_string()?;
+        return if let Some(value) = instance.fields.borrow().get(&name) {
+            self.pop_value()?;
+            self.push_value(RawValue(value.clone()));
+            Ok(())
+        } else {
+            Err(RuntimeError(self.runtime_error(format!("Undefined property {}.", name).as_str())))
+        };
     }
 
     fn capture_upvalue(&mut self, stack_index: usize) -> Result<UpValue, InterpretError> {
@@ -434,8 +494,7 @@ impl VM {
                 }
             }
         }
-        self.runtime_error("Expect a up value");
-        Err(RuntimeError)
+        Err(RuntimeError(self.runtime_error("Expect a up value")))
     }
 
     fn define_native(&mut self, name: &str, function: NativeFn) {
@@ -477,42 +536,52 @@ impl VM {
         return if let Some(StringValue(name)) = self.current_chunk().constants.read_value(b as usize) {
             Ok(name.clone())
         } else {
-            self.runtime_error(&format!("Undefined constant for '{}'.", b));
-            Err(RuntimeError)
+            Err(RuntimeError(self.runtime_error(&format!("Undefined constant for '{}'.", b))))
         };
     }
 
-    fn binary_op(&mut self, op: OpCode) {
-        match (self.pop_value(), self.pop_value()) {
-            (Some(RawValue(Number(b))), Some(RawValue(Number(a)))) => {
+    fn binary_op(&mut self, op: OpCode) -> Result<(), InterpretError> {
+        match (self.pop_value()?, self.pop_value()?) {
+            (RawValue(Number(b)), RawValue(Number(a))) => {
                 self.number_binary_op(op, b, a);
             }
-            (Some(RawValue(StringValue(b))), Some(RawValue(StringValue(a)))) => {
+            (RawValue(StringValue(b)), RawValue(StringValue(a))) => {
                 match op {
                     OpCode::OpAdd => self.push_value(RawValue(StringValue(format!("{}{}", a, b)))),
-                    _ => {}
+                    _ => {
+                        return Err(RuntimeError(self.runtime_error("Unsupported string operation.")));
+                    }
                 }
             }
-            (Some(StackValue::UpValue(b)), Some(RawValue(Number(a)))) => {
+            (StackValue::UpValue(b), RawValue(Number(a))) => {
                 match b.borrow().deref() {
                     Number(b_val) => self.number_binary_op(op, *b_val, a),
-                    _ => {}
+                    _ => {
+                        return Err(RuntimeError(self.runtime_error("Unsupported up value operation.")));
+                    }
                 }
             }
-            (Some(RawValue(Number(b))), Some(StackValue::UpValue(a))) => {
+            (RawValue(Number(b)), StackValue::UpValue(a)) => {
                 match a.borrow().deref() {
                     Number(a_val) => self.number_binary_op(op, b, *a_val),
-                    _ => {}
+                    _ => {
+                        return Err(RuntimeError(self.runtime_error("Unsupported up value operation.")));
+                    }
                 }
             }
-            (Some(StackValue::UpValue(b)), Some(StackValue::UpValue(a))) => {
+            (StackValue::UpValue(b), StackValue::UpValue(a)) => {
                 match (b.borrow().deref(), a.borrow().deref()) {
                     (Number(b_val), Number(a_val)) => self.number_binary_op(op, *b_val, *a_val),
-                    _ => {}
+                    _ => {
+                        return Err(RuntimeError(self.runtime_error("Unsupported up value operation.")));
+                    }
                 }
             }
-            _ => {}
+            _ => {
+                return Err(RuntimeError(self.runtime_error("Unsupported operation.")));
+            }
         }
+        Ok(())
     }
 
     fn number_binary_op(&mut self, op: OpCode, b: f64, a: f64) {
@@ -527,19 +596,19 @@ impl VM {
         }
     }
 
-
-    fn runtime_error(&mut self, message: &str) {
+    fn runtime_error(&self, message: &str) -> String {
+        let mut result = String::new();
         for frame in self.frames.iter().rev() {
             let function = &frame.closure.function;
             let instruction = frame.ip - 1;
-            eprintln!("[line {}] in {}", function.chunk.lines[instruction],
-                      if function.name.is_empty() {
-                          "script".to_string()
-                      } else {
-                          format!("{}()", function.name)
-                      })
+            writeln!(result, "[line {} in {}] {}", function.chunk.lines[instruction],
+                     if function.name.is_empty() {
+                         "script".to_string()
+                     } else {
+                         format!("{}()", function.name)
+                     }, message).unwrap();
         }
-        self.stack.clear()
+        return result;
     }
 }
 

@@ -50,12 +50,8 @@ fn repl() {
 }
 
 fn interpret(source: String) -> InterpretResult {
-    if let Ok(chunk) = compile(source) {
-        let mut vm = VM::new(chunk);
-        vm.run()
-    } else {
-        Err(InterpretError::CompileError)
-    }
+    let chunk = compile(source).map_err(InterpretError::CompileError)?;
+    VM::new(chunk).run()
 }
 
 fn run_file(path: &str) {

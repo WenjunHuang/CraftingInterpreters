@@ -37,6 +37,9 @@ pub enum OpCode {
     OpClosure,
     OpGetUpValue,
     OpSetUpValue,
+    OpClass,
+    OpGetProperty,
+    OpSetProperty
 }
 
 #[derive(Debug)]

@@ -138,8 +138,8 @@ lazy_static! {
         });
         m.insert(TokenType::Dot,ParseRule{
             prefix: None,
-            infix: None,
-            precedence: Precedence::None,
+            infix: Some(Parser::dot),
+            precedence: Precedence::Call,
         });
         m.insert(TokenType::Minus,ParseRule{
             prefix: Some(Parser::unary),
@@ -340,13 +340,11 @@ impl Parser {
     pub(crate) fn current_function(self) -> Function {
         self.compiler.function
     }
-}
-
-impl Parser {
     pub(crate) fn had_error(&self) -> bool {
         self.error.borrow().had_error
     }
 }
+
 
 impl Parser {
     pub fn new(scanner: Scanner, chunk: Chunk) -> Parser {
@@ -423,6 +421,20 @@ impl Parser {
         }
         self.consume(TokenType::RightParen, "Expect ')' after arguments.")?;
         Ok(arg_count)
+    }
+
+    pub fn dot(&mut self, can_assign: bool) -> ParserResult {
+        self.consume(TokenType::Identifier, "Expect property name after '.'.")?;
+        let name = self.identifier_constant(self.get_token_name(self.get_previous()?).to_string())?;
+        if can_assign && self.match_token(TokenType::Equal) {
+            self.expression()?;
+            self.emit_opcode(OpCode::OpSetProperty);
+            self.emit_byte(name);
+        } else {
+            self.emit_opcode(OpCode::OpGetProperty);
+            self.emit_byte(name);
+        }
+        Ok(())
     }
 
     pub fn call(&mut self, can_assign: bool) -> ParserResult {
@@ -561,6 +573,7 @@ impl Parser {
         let line = self.previous_line();
         self.chunk().write_opcode(opcode, line);
     }
+
 
     fn emit_byte(&mut self, byte: u8) {
         let line = self.previous_line();
@@ -936,41 +949,41 @@ impl Parser {
 
     fn parse_variable(&mut self, error_message: &str) -> Result<Variable, String> {
         self.consume(TokenType::Identifier, error_message)?;
-        self.declare_variable();
+        self.declare_variable()?;
         if self.compiler.scope_depth > 0 {
             return Ok(Variable::LocalVariable((self.compiler.locals.len() - 1) as u8));
         }
-        return Ok(Variable::GlobalVariable(self.identifier_constant(self.get_token_name(self.previous.as_ref().unwrap()).to_string())?));
+        let token_name = self.get_token_name(self.get_previous()?).to_string();
+        return Ok(Variable::GlobalVariable(self.identifier_constant(token_name)?));
     }
 
-    fn declare_variable(&mut self) {
+    fn declare_variable(&mut self) -> ParserResult {
         if self.compiler.scope_depth == 0 {
-            return;
+            return Ok(());
         }
 
-        if let Some(token) = self.previous {
-            let token_name = self.scanner.source.get(token.start as usize..(token.start + token.length) as usize).unwrap();
-            for local in self.compiler.locals.iter().rev() {
-                if local.depth != -1 && local.depth < self.compiler.scope_depth {
-                    break;
-                }
-
-                if token_name == local.name {
-                    self.error("Already variable with this name in this scope.");
-                }
+        let token = self.get_previous()?;
+        let token_name = self.get_token_name(token);
+        for local in self.compiler.locals.iter().rev() {
+            if local.depth != -1 && local.depth < self.compiler.scope_depth {
+                break;
             }
-            self.add_local(token_name.to_string());
+
+            if token_name == local.name {
+                return Err(self.error("Already variable with this name in this scope."));
+            }
         }
+        self.add_local(token_name.to_string())?;
+        Ok(())
     }
 
     fn copy_string(&self, start: usize, length: usize) -> String {
         self.scanner.source.get(start..(start + length)).unwrap().to_string()
     }
 
-    fn add_local(&mut self, name: String) {
+    fn add_local(&mut self, name: String) -> Result<u8, String> {
         if self.compiler.locals.len() == u8::MAX as usize {
-            self.error("Too many local variables in function.");
-            return;
+            return Err(self.error("Too many local variables in function."));
         }
 
         let mut local = Local::new();
@@ -978,6 +991,7 @@ impl Parser {
         local.depth = -1;
         local.index = self.compiler.locals.len() as i32;
         self.compiler.locals.push(local);
+        return Ok((self.compiler.locals.len() - 1) as u8);
     }
 
     fn define_variable(&mut self, variable: Variable) {
@@ -1015,13 +1029,16 @@ impl Parser {
     }
 
     pub fn declaration(&mut self) -> ParserResult {
-        let result = if self.match_token(TokenType::Fun) {
-            self.fun_declaration()
-        } else if self.match_token(TokenType::Var) {
-            self.var_declaration()
-        } else {
-            self.statement()
-        };
+        let result =
+            if self.match_token(TokenType::Class) {
+                self.class_declaration()
+            } else if self.match_token(TokenType::Fun) {
+                self.fun_declaration()
+            } else if self.match_token(TokenType::Var) {
+                self.var_declaration()
+            } else {
+                self.statement()
+            };
 
         match result {
             Ok(_) => Ok(()),
@@ -1031,6 +1048,21 @@ impl Parser {
                 Ok(())
             }
         }
+    }
+
+    fn class_declaration(&mut self) -> ParserResult {
+        self.consume(TokenType::Identifier, "Expect class name.")?;
+        let name_constant = self.identifier_constant(self.get_token_name(self.get_previous()?).to_string())?;
+        self.declare_variable()?;
+
+        self.emit_opcode(OpCode::OpClass);
+        self.emit_byte(name_constant);
+        self.define_variable(Variable::GlobalVariable(name_constant));
+
+        self.consume(TokenType::LeftBrace, "Expect '{' before class body.")?;
+        self.consume(TokenType::RightBrace, "Expect '}' after class body.")?;
+
+        Ok(())
     }
 
     fn fun_declaration(&mut self) -> ParserResult {
@@ -1121,6 +1153,13 @@ impl Parser {
 
     fn get_token_name(&self, token: &Token) -> &str {
         self.scanner.source.get(token.start as usize..(token.start + token.length) as usize).unwrap()
+    }
+
+    fn get_previous(&self) -> Result<&Token, String> {
+        match self.previous {
+            Some(ref token) => Ok(token),
+            None => Err("No previous token".to_string())
+        }
     }
 }
 

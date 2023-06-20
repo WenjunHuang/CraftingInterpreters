@@ -54,7 +54,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
             offset += 1;
 
             match value {
-                Value::FunctionValue(fun) =>{
+                Value::FunctionValue(fun) => {
                     for _ in 0..fun.upvalue_count {
                         let is_local = chunk.code[offset];
                         offset += 1;
@@ -63,7 +63,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
                         println!("{:04}      |                     {} {}", offset - 2, if is_local == 1 { "local" } else { "upvalue" }, index);
                     }
                 }
-                _ =>{}
+                _ => {}
             }
 
             offset
@@ -74,6 +74,9 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
         }
         Ok(OpCode::OpGetUpValue) => byte_instruction("OP_GET_UPVALUE", chunk, offset),
         Ok(OpCode::OpSetUpValue) => byte_instruction("OP_SET_UPVALUE", chunk, offset),
+        Ok(OpCode::OpClass) => constant_instruction("OP_CLASS", chunk, offset),
+        Ok(OpCode::OpGetProperty) => constant_instruction("OP_GET_PROPERTY", chunk, offset),
+        Ok(OpCode::OpSetProperty) => constant_instruction("OP_SET_PROPERTY", chunk, offset),
     }
 }
 

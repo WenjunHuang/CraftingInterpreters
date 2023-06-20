@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
+use crate::vm::class::{Class, Instance};
 use crate::vm::closure::Closure;
 use crate::vm::function::Function;
 use crate::vm::native_function::NativeFunction;
@@ -14,6 +15,8 @@ pub enum Value {
     FunctionValue(Rc<Function>),
     NativeFunctionValue(Rc<NativeFunction>),
     ClosureValue(Rc<Closure>),
+    ClassValue(Rc<Class>),
+    InstanceValue(Rc<Instance>)
 }
 
 impl PartialEq<Self> for Value {
@@ -43,6 +46,8 @@ impl Display for Value {
             Value::FunctionValue(fun) => write!(f, "{}", fun),
             Value::NativeFunctionValue(fun) => write!(f, "{}", fun),
             Value::ClosureValue(closure) => write!(f, "{}", closure),
+            Value::ClassValue(class) => write!(f, "{}", class),
+            Value::InstanceValue(inst) => write!(f,"{}",inst),
         }
     }
 }
