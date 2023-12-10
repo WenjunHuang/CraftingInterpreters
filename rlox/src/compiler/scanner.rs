@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 pub struct Scanner {
     start: i32,
     current: i32,
@@ -56,7 +54,7 @@ pub enum TokenType {
     Default,
 }
 
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub start: i32,
@@ -125,14 +123,14 @@ impl Scanner {
             }
             '"' => { self.string() }
             n if n.is_digit(10) => { self.number() }
-            a if self.is_alpha(a) => { self.identifier() }
+            a if self.is_alpha_or_underscore(a) => { self.identifier() }
             _ => self.error_token("Unexpected character.")
         };
     }
 
     fn identifier(&mut self) -> Token {
         while let Some(c) = self.peek() {
-            if self.is_alpha(c) || c.is_digit(10) {
+            if self.is_alpha_or_underscore(c) || c.is_digit(10) {
                 self.advance();
             } else {
                 break;
@@ -202,7 +200,7 @@ impl Scanner {
         return TokenType::Identifier;
     }
 
-    fn is_alpha(&self, c: char) -> bool {
+    fn is_alpha_or_underscore(&self, c: char) -> bool {
         c.is_ascii_alphabetic() || c == '_'
     }
 

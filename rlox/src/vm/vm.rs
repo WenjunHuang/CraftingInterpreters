@@ -8,7 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 
 use crate::chunk::{Chunk, OpCode};
-use crate::vm::class::{Class, Instance};
+use crate::vm::class::{BoundMethod, Class, Instance};
 use crate::vm::closure::Closure;
 use crate::vm::debug::disassemble_instruction;
 
@@ -16,7 +16,7 @@ use crate::vm::function::Function;
 use crate::vm::native_function::{NativeFn, NativeFunction};
 use crate::vm::up_value::UpValue;
 use crate::vm::value::{print_value, Value};
-use crate::vm::value::Value::{Bool, ClassValue, ClosureValue, FunctionValue, InstanceValue, NativeFunctionValue, Number, StringValue};
+use crate::vm::value::Value::{Bool, BoundMethodValue, ClassValue, ClosureValue, FunctionValue, InstanceValue, NativeFunctionValue, Number, StringValue};
 use crate::vm::vm::InterpretError::RuntimeError;
 use crate::vm::vm::StackValue::RawValue;
 
@@ -30,9 +30,9 @@ pub enum StackValue {
 }
 
 impl StackValue {
-    pub fn as_value(&self) -> Value {
+    pub fn to_value(self) -> Value {
         match self {
-            RawValue(value) => value.clone(),
+            RawValue(value) => value,
             StackValue::UpValue(value) => value.borrow().clone(),
         }
     }
@@ -249,7 +249,7 @@ impl VM {
                     self.pop_value()?;
                 }
                 Ok(OpCode::OpDefineGlobal) => {
-                    let name = self.read_string()?;
+                    let name = self.read_string_constant()?;
                     let value = self.pop_value()?;
                     match value {
                         RawValue(v) => {
@@ -262,7 +262,7 @@ impl VM {
                     }
                 }
                 Ok(OpCode::OpGetGlobal) => {
-                    let name = self.read_string()?;
+                    let name = self.read_string_constant()?;
                     match self.globals.get(&name) {
                         Some(v) => {
                             self.push_value(RawValue(v.clone()));
@@ -273,7 +273,7 @@ impl VM {
                     };
                 }
                 Ok(OpCode::OpSetGlobal) => {
-                    let name = self.read_string()?;
+                    let name = self.read_string_constant()?;
                     if self.globals.contains_key(&name) {
                         let value = self.peek_value(0)?;
                         match value {
@@ -334,14 +334,33 @@ impl VM {
                         }
                         RawValue(ClassValue(class)) => {
                             let slot = self.peek_value_mut(arg_count as usize)?;
-                            *slot = RawValue(InstanceValue(Rc::new(Instance::new(class))));
+                            *slot = RawValue(InstanceValue(Rc::new(Instance::new(class.clone()))));
+                            match class.methods.borrow().get("init") {
+                                Some(method) => {
+                                    self.call(method.clone(), arg_count as usize);
+                                }
+                                None if arg_count != 0 => {
+                                    return Err(RuntimeError(self.runtime_error("Expected 0 arguments but got 1.")));
+                                }
+                                _ => {}
+                            }
+                        }
+                        RawValue(BoundMethodValue(bound)) => {
+                            let st = self.peek_value_mut(arg_count as usize)?;
+                            *st = RawValue(InstanceValue(bound.receiver.clone()));
+                            self.call(bound.method.clone(), arg_count as usize)?;
                         }
                         StackValue::UpValue(upvalue) => {
                             let v = upvalue.borrow();
                             match *v {
                                 ClosureValue(ref closure) => {
                                     let f1 = closure.clone();
-                                    self.call(f1, arg_count as usize);
+                                    self.call(f1, arg_count as usize)?;
+                                }
+                                BoundMethodValue(ref bound) => {
+                                    let st = self.peek_value_mut(arg_count as usize)?;
+                                    *st = RawValue(InstanceValue(bound.receiver.clone()));
+                                    self.call(bound.method.clone(), arg_count as usize)?;
                                 }
                                 _ => {
                                     return Err(RuntimeError(self.runtime_error("Can only call functions and closures.")));
@@ -399,21 +418,23 @@ impl VM {
                     }
                 }
                 Ok(OpCode::OpClass) => {
-                    let name = self.read_string()?;
+                    let name = self.read_string_constant()?;
                     let class = Class::new(name);
                     self.push_value(RawValue(ClassValue(Rc::new(class))));
                 }
                 Ok(OpCode::OpGetProperty) => {
-                    let value = self.peek_value(0)?.clone();
+                    let value = self.pop_value()?;
                     match value {
                         RawValue(InstanceValue(instance)) => {
-                            self.get_instance_property(&instance)?;
+                            let property_value = self.get_instance_property(&instance)?;
+                            self.push_value(property_value);
                         }
                         StackValue::UpValue(upvalue) => {
                             let v = upvalue.borrow();
                             match *v {
                                 InstanceValue(ref instance) => {
-                                    self.get_instance_property(instance)?;
+                                    let property_value = self.get_instance_property(instance)?;
+                                    self.push_value(property_value);
                                 }
                                 _ => {
                                     return Err(RuntimeError(self.runtime_error("Only instances have properties.")));
@@ -426,23 +447,26 @@ impl VM {
                     }
                 }
                 Ok(OpCode::OpSetProperty) => {
-                    let name = self.read_string()?;
-                    let value = self.peek_value(1)?;
-                    match value {
+                    let name = self.read_string_constant()?;
+                    let value = self.pop_value()?;
+                    let instance = self.pop_value()?;
+                    match instance {
                         RawValue(InstanceValue(instance)) => {
-                            let value = self.peek_value(0)?;
+                            let value = value.to_value();
                             instance.fields
                                 .borrow_mut()
-                                .insert(name, value.as_value());
+                                .insert(name, value.clone());
+                            self.push_value(RawValue(value));
                         }
                         StackValue::UpValue(upvalue) => {
                             let v = upvalue.borrow();
                             match *v {
                                 InstanceValue(ref instance) => {
-                                    let value = self.peek_value(0)?;
+                                    let value = value.to_value();
                                     instance.fields
                                         .borrow_mut()
-                                        .insert(name, value.as_value());
+                                        .insert(name, value.clone());
+                                    self.push_value(RawValue(value));
                                 }
                                 _ => {
                                     return Err(RuntimeError(self.runtime_error("Only instances have fields.")));
@@ -454,16 +478,174 @@ impl VM {
                         }
                     }
                 }
+                Ok(OpCode::OpMethod) => {
+                    let method_name = self.read_string_constant()?;
+                    self.define_method(&method_name)?;
+                }
+                Ok(OpCode::OpInvoke) => {
+                    let method_name = self.read_string_constant()?;
+                    let arg_count = self.read_byte();
+                    self.invoke(&method_name, arg_count as usize)?;
+                }
+                Ok(OpCode::OpInherit) => {
+                    let subclass = self.pop_value()?;
+                    let superclass = self.pop_value()?;
+                    if let RawValue(ClassValue(subclass)) = subclass {
+                        if let RawValue(ClassValue(superclass)) = superclass {
+                            subclass.methods.borrow_mut().extend(superclass.methods.borrow().clone());
+                            self.push_value(RawValue(ClassValue(subclass)));
+                        } else {
+                            return Err(RuntimeError(self.runtime_error("Superclass must be a class.")));
+                        }
+                    } else {
+                        return Err(RuntimeError(self.runtime_error("Subclass must be a class.")));
+                    }
+                }
+                Ok(OpCode::OpGetSuper) => {
+                    let name = self.read_string_constant()?;
+                    let superclass = self.pop_value().and_then(|value| {
+                        match value {
+                            RawValue(ClassValue(superclass)) => {
+                                Ok(superclass)
+                            }
+                            _ => {
+                                Err(RuntimeError(self.runtime_error("Superclass must be a class.")))
+                            }
+                        }
+                    })?;
+                    let instance = self.pop_value().and_then(|value| {
+                        match value {
+                            RawValue(InstanceValue(instance)) => {
+                                Ok(instance)
+                            }
+                            _ => {
+                                Err(RuntimeError(self.runtime_error("Expect an instance.")))
+                            }
+                        }
+                    })?;
+                    let superclass_methods = superclass.methods.borrow();
+                    if let Some(method) = superclass_methods.get(&name) {
+                        let bound = BoundMethod::new(instance.clone(), method.clone());
+                        self.push_value(RawValue(BoundMethodValue(Rc::new(bound))));
+                    } else {
+                        return Err(RuntimeError(self.runtime_error("Undefined super class property.")));
+                    }
+                }
+                Ok(OpCode::OpSuperInvoke) => {
+                    let method = self.read_string_constant()?;
+                    let arg_count = self.read_byte();
+                    let super_class = self.pop_value().and_then(|value| {
+                        match value {
+                            RawValue(ClassValue(class)) => Ok(class),
+                            _ => {
+                                Err(RuntimeError(self.runtime_error("Expect a class")))
+                            }
+                        }
+                    })?;
+                    self.invoke_from_class(super_class, &method, arg_count as usize)?;
+                }
             }
         }
     }
 
-    fn get_instance_property(&mut self, instance: &Instance) -> Result<(), InterpretError> {
-        let name = self.read_string()?;
+    fn invoke_property(&mut self, name: &str, inst: Rc<Instance>, arg_count: usize) -> Result<(), InterpretError> {
+        let field = inst.fields.borrow().get(name)
+            .map(|field| field.clone());
+        if let Some(ClosureValue(closure)) = field {
+            self.call(closure, arg_count)
+        } else {
+            self.invoke_from_class(inst.class.clone(), name, arg_count)
+        }
+    }
+
+    fn invoke_from_class(&mut self, class: Rc<Class>, name: &str, arg_count: usize) -> Result<(), InterpretError> {
+        let method = class.methods
+            .borrow_mut()
+            .get(name)
+            .map(|method| method.clone())
+            .ok_or_else(|| RuntimeError(self.runtime_error("Undefined property.")))?;
+        self.call(method, arg_count)
+    }
+
+    fn invoke(&mut self, name: &str, arg_count: usize) -> Result<(), InterpretError> {
+        // let value = self.peek_value(arg_count)?;
+        match self.peek_value(arg_count)? {
+            RawValue(value) => {
+                match value.clone() {
+                    InstanceValue(inst) => {
+                        self.invoke_property(name, inst, arg_count)
+                    }
+                    _ => {
+                        return Err(RuntimeError(self.runtime_error("Expect a function value.")));
+                    }
+                }
+            }
+            StackValue::UpValue(upvalue) => {
+                let upvalue = upvalue.clone();
+                let v = upvalue.borrow();
+                match *v {
+                    InstanceValue(ref inst) => {
+                        self.invoke_property(name, inst.clone(), arg_count)
+                    }
+                    _ => {
+                        return Err(RuntimeError(self.runtime_error("Expect a function value.")));
+                    }
+                }
+            }
+        }
+    }
+
+    fn define_method(&mut self, method_name: &str) -> Result<(), InterpretError> {
+        let value = self.pop_value()?;
+        let class = match self.peek_value(0)? {
+            RawValue(ClassValue(class)) => {
+                class.clone()
+            }
+            StackValue::UpValue(upvalue) => {
+                let v = upvalue.borrow();
+                match *v {
+                    ClassValue(ref class) => {
+                        class.clone()
+                    }
+                    _ => {
+                        return Err(RuntimeError(self.runtime_error("Only instances have fields.")));
+                    }
+                }
+            }
+            _ => {
+                return Err(RuntimeError(self.runtime_error("Only instances have fields.")));
+            }
+        };
+        match value {
+            RawValue(ClosureValue(closure)) => {
+                class.methods.borrow_mut().insert(method_name.to_string(), closure);
+            }
+            StackValue::UpValue(upvalue) => {
+                let v = upvalue.borrow();
+                match *v {
+                    ClosureValue(ref closure) => {
+                        class.methods.borrow_mut().insert(method_name.to_string(), closure.clone());
+                    }
+                    _ => {
+                        return Err(RuntimeError(self.runtime_error("Value is not a closure.")));
+                    }
+                }
+            }
+            _ => {
+                return Err(RuntimeError(self.runtime_error("Value is not a closure.")));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn get_instance_property(&mut self, instance: &Rc<Instance>) -> Result<StackValue, InterpretError> {
+        let name = self.read_string_constant()?;
         return if let Some(value) = instance.fields.borrow().get(&name) {
-            self.pop_value()?;
-            self.push_value(RawValue(value.clone()));
-            Ok(())
+            Ok(RawValue(value.clone()))
+        } else if let Some(method) = instance.class.methods.borrow().get(&name) {
+            let bound = BoundMethod::new(instance.clone(), method.clone());
+            Ok(RawValue(BoundMethodValue(Rc::new(bound))))
         } else {
             Err(RuntimeError(self.runtime_error(format!("Undefined property {}.", name).as_str())))
         };
@@ -501,21 +683,19 @@ impl VM {
         self.globals.insert(name.to_string(), NativeFunctionValue(Rc::new(NativeFunction::new(function))));
     }
 
-    fn call(&mut self, closure: Rc<Closure>, arg_count: usize) -> bool {
+    fn call(&mut self, closure: Rc<Closure>, arg_count: usize) -> Result<(), InterpretError> {
         if arg_count != closure.function.arity {
-            self.runtime_error(&format!("Expected {} arguments but got {}.", closure.function.arity, arg_count));
-            return false;
+            return Err(RuntimeError(self.runtime_error(&format!("Expected {} arguments but got {}.", closure.function.arity, arg_count))));
         }
         if self.frames.len() == FRAMES_MAX {
-            self.runtime_error("Stack overflow.");
-            return false;
+            return Err(RuntimeError(self.runtime_error("Stack overflow.")));
         }
         self.frames.push(CallFrame {
             closure,
             ip: 0,
             stack_base: self.stack.len() - arg_count - 1,
         });
-        true
+        Ok(())
     }
 
     fn read_constant(&mut self) -> &Value {
@@ -531,7 +711,7 @@ impl VM {
         }
     }
 
-    fn read_string(&mut self) -> Result<String, InterpretError> {
+    fn read_string_constant(&mut self) -> Result<String, InterpretError> {
         let b = self.read_byte();
         return if let Some(StringValue(name)) = self.current_chunk().constants.read_value(b as usize) {
             Ok(name.clone())

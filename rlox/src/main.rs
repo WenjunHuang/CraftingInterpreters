@@ -29,15 +29,23 @@ fn main() {
 fn repl() {
     loop {
         print!("> ");
-        stdout().flush();
+        stdout().flush().unwrap();
         // read a line from stdin
         let mut line = String::new();
         loop {
             match stdin().read_line(&mut line) {
                 Ok(size) => {
                     if size == 1 {
-                        interpret(line);
-                        break;
+                        match interpret(line) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                match e {
+                                    InterpretError::RuntimeError(msg) => println!("{}", msg),
+                                    InterpretError::CompileError(msg) => eprintln!("{}", msg),
+                                }
+                            }
+                        }
+                        break
                     }
                 }
                 Err(_) => {

@@ -78,7 +78,7 @@ pub struct Compiler {
     enclosing: Option<Box<Compiler>>,
     pub function: Function,
     locals: Vec<Local>,
-    upvalues: Vec<UpValue>,
+    up_values: Vec<UpValue>,
     scope_depth: i32,
 }
 
@@ -91,18 +91,21 @@ impl Compiler {
             function: Function::new(0, chunk, function_type),
             // allocate u8::max Locals to locals
             locals: Vec::with_capacity(u8::MAX as usize),
-            upvalues: Vec::with_capacity(u8::MAX as usize),
+            up_values: Vec::with_capacity(u8::MAX as usize),
             scope_depth: 0,
         };
         let mut local = Local::new();
         local.depth = 0;
         local.index = 0;
+        if function_type == FunctionType::METHOD || function_type == FunctionType::INITIALIZER {
+            local.name = "this".to_string();
+        }
         compiler.locals.push(local);
         return compiler;
     }
     fn add_upvalue(&mut self, up_value: UpValue) -> u8 {
-        self.upvalues.push(up_value);
-        self.function.upvalue_count = self.upvalues.len();
+        self.up_values.push(up_value);
+        self.function.upvalue_count = self.up_values.len();
         (self.function.upvalue_count - 1) as u8
     }
 }
@@ -283,12 +286,12 @@ lazy_static! {
             precedence: Precedence::None,
         });
         m.insert(TokenType::Super,ParseRule{
-            prefix: None,
+            prefix: Some(Parser::super_),
             infix:None,
             precedence: Precedence::None,
         });
         m.insert(TokenType::This,ParseRule{
-            prefix: None,
+            prefix: Some(Parser::this),
             infix:None,
             precedence: Precedence::None,
         });
@@ -321,6 +324,20 @@ lazy_static! {
     };
 }
 
+pub struct ClassCompiler {
+    pub enclosing: Option<Box<ClassCompiler>>,
+    pub has_superclass: bool,
+}
+
+impl ClassCompiler {
+    pub fn new() -> ClassCompiler {
+        ClassCompiler {
+            enclosing: None,
+            has_superclass: false,
+        }
+    }
+}
+
 struct ParserError {
     pub had_error: bool,
     panic_mode: bool,
@@ -333,6 +350,7 @@ pub struct Parser {
     previous: Option<Token>,
     scanner: Scanner,
     pub compiler: Box<Compiler>,
+    pub class_compiler: Option<Box<ClassCompiler>>,
     error: RefCell<ParserError>,
 }
 
@@ -352,6 +370,7 @@ impl Parser {
             current: None,
             previous: None,
             compiler: Box::new(Compiler::new(chunk, None, FunctionType::SCRIPT)),
+            class_compiler: None,
             scanner,
             error: RefCell::new(ParserError {
                 had_error: false,
@@ -386,6 +405,45 @@ impl Parser {
         }
 
         Err(self.error_at_current(message))
+    }
+
+    fn super_(&mut self, _: bool) -> ParserResult {
+        match self.class_compiler.as_ref() {
+            None => {
+                return Err(self.error_at_current("Can't use 'super' outside of a class."));
+            }
+            Some(cc) if !cc.has_superclass => {
+                return Err(self.error_at_current("Can't use 'super' in a class with no super class."));
+            }
+            _ => {}
+        }
+
+        self.consume(TokenType::Dot, "Expect '.' after 'super'.")?;
+        self.consume(TokenType::Identifier, "Expect superclass method name.")?;
+
+        let name = self.make_string_constant(self.get_token_name(self.get_previous()?).to_string())?;
+
+        self.named_variable("this", false)?;
+        if self.match_token(TokenType::LeftParen) {
+            let arg_count = self.argument_list()?;
+            self.named_variable("super", false)?;
+            self.emit_opcode(OpCode::OpSuperInvoke);
+            self.emit_byte(name);
+            self.emit_byte(arg_count);
+        } else {
+            self.named_variable("super", false)?;
+            self.emit_opcode(OpCode::OpGetSuper);
+            self.emit_byte(name);
+        }
+        Ok(())
+    }
+
+    fn this(&mut self, _: bool) -> ParserResult {
+        if self.class_compiler.is_none() {
+            return Err(self.error_at_current("Can't use 'this' outside of a class."));
+        }
+        self.variable(false)?;
+        Ok(())
     }
 
     fn literal(&mut self, _: bool) -> ParserResult {
@@ -425,11 +483,16 @@ impl Parser {
 
     pub fn dot(&mut self, can_assign: bool) -> ParserResult {
         self.consume(TokenType::Identifier, "Expect property name after '.'.")?;
-        let name = self.identifier_constant(self.get_token_name(self.get_previous()?).to_string())?;
+        let name = self.make_string_constant(self.get_token_name(self.get_previous()?).to_string())?;
         if can_assign && self.match_token(TokenType::Equal) {
             self.expression()?;
             self.emit_opcode(OpCode::OpSetProperty);
             self.emit_byte(name);
+        } else if self.match_token(TokenType::LeftParen) {
+            let arg_count = self.argument_list()?;
+            self.emit_opcode(OpCode::OpInvoke);
+            self.emit_byte(name);
+            self.emit_byte(arg_count);
         } else {
             self.emit_opcode(OpCode::OpGetProperty);
             self.emit_byte(name);
@@ -477,7 +540,7 @@ impl Parser {
                 if let Some(upvalue) = self.resolve_upvalue(name)? {
                     (upvalue, OpCode::OpGetUpValue, OpCode::OpSetUpValue)
                 } else {
-                    (self.identifier_constant(name.to_string())?, OpCode::OpGetGlobal, OpCode::OpSetGlobal)
+                    (self.make_string_constant(name.to_string())?, OpCode::OpGetGlobal, OpCode::OpSetGlobal)
                 }
             }
         };
@@ -518,10 +581,10 @@ impl Parser {
     }
 
     fn add_upvalue(compiler: &mut Compiler, up_value: UpValue) -> Result<u8, String> {
-        match compiler.upvalues.iter().enumerate().find(|(index, item)| up_value == **item) {
+        match compiler.up_values.iter().enumerate().find(|(index, item)| up_value == **item) {
             Some((idx, _)) => Ok(idx as u8),
             None =>
-                if compiler.upvalues.len() == u8::MAX as usize {
+                if compiler.up_values.len() == u8::MAX as usize {
                     Err("Too many closure variables in functions.".to_string())
                 } else {
                     Ok(compiler.add_upvalue(up_value))
@@ -553,19 +616,24 @@ impl Parser {
 
     fn error_at(&self, token: &Token, message: &str) -> String {
         let mut msg = String::new();
-        writeln!(msg, "[line {}] Error", token.line);
-        writeln!(msg, "[line {}] Error", token.line);
+        writeln!(msg, "[line {}] Error", token.line).unwrap();
+        writeln!(msg, "[line {}] Error", token.line).unwrap();
         if token.token_type == TokenType::Eof {
-            writeln!(msg, " at end");
+            writeln!(msg, " at end").unwrap();
         } else if token.token_type == TokenType::Error {} else {
-            writeln!(msg, " at '{}'", &self.scanner.source[(token.start as usize)..(token.start + token.length) as usize]);
+            writeln!(msg, " at '{}'", &self.scanner.source[(token.start as usize)..(token.start + token.length) as usize]).unwrap();
         }
-        writeln!(msg, ": {}", message);
+        writeln!(msg, ": {}", message).unwrap();
         msg
     }
 
     fn emit_return(&mut self) {
-        self.emit_opcode(OpCode::OpNil);
+        if self.compiler.function.function_type == FunctionType::INITIALIZER {
+            self.emit_opcode(OpCode::OpGetLocal);
+            self.emit_byte(0);
+        } else {
+            self.emit_opcode(OpCode::OpNil);
+        }
         self.emit_opcode(OpCode::OpReturn);
     }
 
@@ -619,7 +687,7 @@ impl Parser {
         let mut value = self.scanner.source[token.start as usize..token.start as usize + token.length as usize].to_string();
         value.remove(value.len() - 1);
         value.remove(0);
-        self.emit_constant(Value::StringValue(value));
+        self.emit_constant(Value::StringValue(value))?;
         Ok(())
     }
 
@@ -628,7 +696,7 @@ impl Parser {
         let value = self.scanner.source[token.start as usize..token.start as usize + token.length as usize]
             .parse::<f64>()
             .unwrap();
-        self.emit_constant(Value::Number(value));
+        self.emit_constant(Value::Number(value))?;
         Ok(())
     }
 
@@ -684,13 +752,13 @@ impl Parser {
 
     fn parse_precedence(&mut self, precedence: Precedence) -> ParserResult {
         self.advance();
-        if let Some(prefix) = self.get_prev_rule().and_then(|rule| rule.prefix.as_ref()) {
+        if let Some(prefix_fn) = self.get_prev_prefix_fn() {
             let can_assign = precedence <= Precedence::Assignment;
-            prefix(self, can_assign)?;
+            prefix_fn(self, can_assign)?;
 
             while let Some(_) = self.get_current_rule().filter(|rule| precedence <= rule.precedence) {
                 self.advance();
-                if let Some(infix) = self.get_prev_rule().and_then(|rule| rule.infix.as_ref()) {
+                if let Some(infix) = self.get_prev_infix_fn() {
                     infix(self, can_assign)?;
                 }
             }
@@ -722,14 +790,13 @@ impl Parser {
         }
     }
 
-    fn make_constant(&mut self, value: Value) -> Result<u8, String> {
-        let constant = self.chunk().add_constant(value);
-        if constant > (u8::MAX as usize) {
-            Err(self.error("Too many constants in one chunk()."))
-        } else {
-            Ok(constant as u8)
-        }
+    fn get_prev_prefix_fn(&self) -> Option<&'static ParseFn> {
+        self.get_prev_rule().and_then(|rule| rule.prefix.as_ref())
     }
+    fn get_prev_infix_fn(&self) -> Option<&'static ParseFn> {
+        self.get_prev_rule().and_then(|rule| rule.infix.as_ref())
+    }
+
 
     fn begin_enclosing(&mut self, function_type: FunctionType) {
         let enclosing = replace(&mut self.compiler, Box::new(Compiler::new(Chunk::new(),
@@ -791,12 +858,16 @@ impl Parser {
 
     fn return_statement(&mut self) -> ParserResult {
         if self.compiler.function.function_type == FunctionType::SCRIPT {
-            self.error("Can't return from top-level code.");
+            return Err(self.error("Can't return from top-level code."));
         }
 
         if self.match_token(TokenType::Semicolon) {
             self.emit_return();
         } else {
+            if self.compiler.function.function_type == FunctionType::INITIALIZER {
+                return Err(self.error("Can't return a value from an initializer."));
+            }
+
             self.expression()?;
             self.consume(TokenType::Semicolon, "Expect ';' after return value.")?;
             self.emit_opcode(OpCode::OpReturn);
@@ -943,7 +1014,16 @@ impl Parser {
         Ok(())
     }
 
-    fn identifier_constant(&mut self, name: String) -> Result<u8, String> {
+    fn make_constant(&mut self, value: Value) -> Result<u8, String> {
+        let constant = self.chunk().add_constant(value);
+        if constant > (u8::MAX as usize) {
+            Err(self.error("Too many constants in one chunk()."))
+        } else {
+            Ok(constant as u8)
+        }
+    }
+
+    fn make_string_constant(&mut self, name: String) -> Result<u8, String> {
         self.make_constant(Value::StringValue(name))
     }
 
@@ -954,7 +1034,7 @@ impl Parser {
             return Ok(Variable::LocalVariable((self.compiler.locals.len() - 1) as u8));
         }
         let token_name = self.get_token_name(self.get_previous()?).to_string();
-        return Ok(Variable::GlobalVariable(self.identifier_constant(token_name)?));
+        return Ok(Variable::GlobalVariable(self.make_string_constant(token_name)?));
     }
 
     fn declare_variable(&mut self) -> ParserResult {
@@ -1000,7 +1080,7 @@ impl Parser {
                 self.emit_opcode(OpCode::OpDefineGlobal);
                 self.emit_byte(global);
             }
-            Variable::LocalVariable(_local) => {
+            Variable::LocalVariable(_) => {
                 self.mark_initialized();
             }
         }
@@ -1040,27 +1120,70 @@ impl Parser {
                 self.statement()
             };
 
-        match result {
-            Ok(_) => Ok(()),
-            Err(msg) => {
-                eprintln!("{}", msg);
-                self.synchronize();
-                Ok(())
-            }
-        }
+        result
     }
 
     fn class_declaration(&mut self) -> ParserResult {
         self.consume(TokenType::Identifier, "Expect class name.")?;
-        let name_constant = self.identifier_constant(self.get_token_name(self.get_previous()?).to_string())?;
+        let class_name = self.get_token_name(self.get_previous()?).to_string();
+        let name_constant = self.make_string_constant(class_name.clone())?;
         self.declare_variable()?;
 
         self.emit_opcode(OpCode::OpClass);
         self.emit_byte(name_constant);
         self.define_variable(Variable::GlobalVariable(name_constant));
 
+        let mut class_compiler = ClassCompiler::new();
+        class_compiler.enclosing = self.class_compiler.take();
+        self.class_compiler = Some(Box::new(class_compiler));
+
+        if self.match_token(TokenType::Less) {
+            self.consume(TokenType::Identifier, "Expect superclass name.")?;
+            self.variable(false)?;
+            if class_name == self.get_token_name(self.get_previous()?) {
+                return Err(self.error("A class can't inherit from itself."));
+            }
+
+            self.begin_scope();
+            self.add_local("super".to_string())?;
+            self.define_variable(Variable::LocalVariable(0));
+
+            self.named_variable(&class_name, false)?;
+            self.emit_opcode(OpCode::OpInherit);
+            if let Some(class_compiler) = self.class_compiler.as_mut() {
+                class_compiler.has_superclass = true;
+            }
+        }
+
+        self.named_variable(&class_name, false)?;
+
         self.consume(TokenType::LeftBrace, "Expect '{' before class body.")?;
+        while !self.check(TokenType::RightBrace) && !self.check(TokenType::Eof) {
+            self.method()?;
+        }
         self.consume(TokenType::RightBrace, "Expect '}' after class body.")?;
+
+        self.emit_opcode(OpCode::OpPop);
+        if self.class_compiler.as_ref().map_or_else(|| false, |c| c.has_superclass) {
+            self.end_scope();
+        }
+        let enclosing = self.class_compiler.take().and_then(|c| c.enclosing);
+        self.class_compiler = enclosing;
+        Ok(())
+    }
+
+    fn method(&mut self) -> ParserResult {
+        self.consume(TokenType::Identifier, "Expect method name.")?;
+        let method_name = self.get_token_name(self.get_previous()?).to_string();
+        let function_type = if method_name == "init" {
+            FunctionType::INITIALIZER
+        } else {
+            FunctionType::METHOD
+        };
+        let constant = self.make_string_constant(method_name)?;
+        self.function(function_type)?;
+        self.emit_opcode(OpCode::OpMethod);
+        self.emit_byte(constant);
 
         Ok(())
     }
@@ -1097,7 +1220,7 @@ impl Parser {
 
         self.block()?;
         let mut compiler = self.end_enclosing()?;
-        let upvalues = mem::take(&mut compiler.upvalues);
+        let upvalues = mem::take(&mut compiler.up_values);
         let const_num = self.make_constant(Value::FunctionValue(Rc::new(compiler.function)))?;
 
         self.emit_opcode(OpCode::OpClosure);

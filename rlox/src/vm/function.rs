@@ -6,6 +6,8 @@ use crate::chunk::Chunk;
 pub enum FunctionType {
     SCRIPT,
     FUNCTION,
+    METHOD,
+    INITIALIZER,
 }
 
 #[derive(Debug)]

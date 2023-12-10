@@ -39,7 +39,12 @@ pub enum OpCode {
     OpSetUpValue,
     OpClass,
     OpGetProperty,
-    OpSetProperty
+    OpSetProperty,
+    OpMethod,
+    OpInvoke,
+    OpInherit,
+    OpGetSuper,
+    OpSuperInvoke,
 }
 
 #[derive(Debug)]

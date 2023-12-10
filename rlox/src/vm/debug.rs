@@ -1,6 +1,7 @@
 use num_enum::TryFromPrimitiveError;
+
 use crate::chunk::{Chunk, OpCode};
-use crate::chunk::OpCode::{OpConstant, OpReturn, OpNegate};
+use crate::chunk::OpCode::{OpConstant, OpNegate, OpReturn};
 use crate::vm::value::Value;
 
 pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
@@ -75,9 +76,21 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
         Ok(OpCode::OpGetUpValue) => byte_instruction("OP_GET_UPVALUE", chunk, offset),
         Ok(OpCode::OpSetUpValue) => byte_instruction("OP_SET_UPVALUE", chunk, offset),
         Ok(OpCode::OpClass) => constant_instruction("OP_CLASS", chunk, offset),
+        Ok(OpCode::OpMethod) => constant_instruction("OP_METHOD", chunk, offset),
         Ok(OpCode::OpGetProperty) => constant_instruction("OP_GET_PROPERTY", chunk, offset),
         Ok(OpCode::OpSetProperty) => constant_instruction("OP_SET_PROPERTY", chunk, offset),
+        Ok(OpCode::OpInvoke) => invoke_instruction("OP_INVOKE", chunk, offset),
+        Ok(OpCode::OpInherit) => simple_instruction("OP_INHERIT", offset),
+        Ok(OpCode::OpGetSuper) => constant_instruction("OP_GET_SUPER", chunk, offset),
+        Ok(OpCode::OpSuperInvoke) => invoke_instruction("OP_SUPER_INVOKE", chunk, offset),
     }
+}
+
+fn invoke_instruction(name: &str, chunk: &Chunk, offset: usize) -> usize {
+    let constant = chunk.code[offset + 1];
+    let arg_count = chunk.code[offset + 2];
+    println!("{:16} ({}) {} ", name, arg_count, constant);
+    offset + 3
 }
 
 fn jump_instruction(name: &str, sign: i32, chunk: &Chunk, offset: usize) -> usize {
